@@ -1,15 +1,14 @@
-/* service-frontend/css/login.css */
+/* src/css/login.css */
 
 .login-body {
   font-family: system-ui, sans-serif;
   background-color: #F5F7F9;
-  min-height: 100vh; /* Garante que cubra a tela, mas deixa crescer se precisar */
-  /* Removemos o 'height: 100vh' fixo que estava travando a tela */
+  min-height: 100vh;
   margin: 0;
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Alinha a partir do topo para NUNCA cortar a logo */
-  padding: 60px 20px; /* Dá um respiro generoso em cima e embaixo */
+  align-items: flex-start;
+  padding: 60px 20px;
   box-sizing: border-box;
 }
 
@@ -30,8 +29,9 @@
 }
 
 .login-title {
-  color: #0A3B66; /* Azul Marinho */
+  color: #0A3B66;
   margin-bottom: 30px;
+  font-size: 24px;
 }
 
 .input-group {
@@ -43,21 +43,23 @@
   display: block;
   font-weight: bold;
   color: #333;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  font-size: 14px;
 }
 
 .input-group input {
   width: 100%;
   padding: 12px;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 16px;
   box-sizing: border-box;
   outline: none;
+  transition: border-color 0.2s;
 }
 
 .input-group input:focus {
-  border-color: #0A847C; /* Verde-Azulado */
+  border-color: #0A847C;
 }
 
 .btn-primary {
@@ -65,12 +67,13 @@
   background-color: #0A847C;
   color: #fff;
   border: none;
-  padding: 12px;
+  padding: 14px;
   border-radius: 8px;
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
   transition: opacity 0.2s;
+  margin-top: 10px;
 }
 
 .btn-primary:hover {
@@ -81,6 +84,7 @@
   margin: 25px 0;
   color: #888;
   position: relative;
+  font-size: 14px;
 }
 
 .divider::before, .divider::after {
@@ -95,11 +99,12 @@
 .divider::before { left: 0; }
 .divider::after { right: 0; }
 
+/* BOTÃO DO GOOGLE AJUSTADO */
 .btn-google {
   width: 100%;
   background-color: #fff;
   color: #333;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
   padding: 12px;
   border-radius: 8px;
   font-size: 16px;
@@ -108,7 +113,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   transition: background-color 0.2s;
 }
 
@@ -117,12 +122,14 @@
 }
 
 .btn-google img {
+  width: 20px;
   height: 20px;
 }
 
 .register-link {
   margin-top: 25px;
   color: #666;
+  font-size: 14px;
 }
 
 .register-link a {

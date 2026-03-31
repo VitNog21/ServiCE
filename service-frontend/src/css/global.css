@@ -1,0 +1,181 @@
+/* Reset Básico e Estrutura do React */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, sans-serif; background-color: #F5F7F9; color: #333; }
+#root { width: 100%; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* 1. HEADER FINO E MODERNO */
+.main-header {
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 10px 5%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 70px;
+}
+
+.header-logo { height: 35px; cursor: pointer; }
+
+/* Barra de pesquisa centralizada no Header */
+.header-search {
+  flex: 1;
+  max-width: 500px;
+  display: flex;
+  margin: 0 20px;
+  border: 2px solid #0A847C;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+
+.header-search input {
+  flex: 1;
+  padding: 10px 15px;
+  border: none;
+  outline: none;
+  font-size: 15px;
+}
+
+.header-search button {
+  background-color: #0A847C;
+  color: white;
+  border: none;
+  padding: 0 20px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.btn-login-header {
+  text-decoration: none;
+  background-color: transparent;
+  color: #0A847C;
+  border: 2px solid #0A847C;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.btn-login-header:hover { background-color: #0A847C; color: white; }
+
+/* 2. CONTEÚDO PRINCIPAL */
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 5%;
+  width: 100%;
+}
+
+/* 3. BANNER / SLIDER DE CAMPANHAS */
+.banner-slider {
+  background: linear-gradient(135deg, #0A3B66, #0A847C);
+  border-radius: 12px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  margin-bottom: 40px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.slide-content h2 { font-size: 28px; margin-bottom: 10px; }
+
+/* Títulos das Seções */
+.section-title {
+  color: #0A3B66;
+  font-size: 20px;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+/* 4. CATEGORIAS AJUSTADAS (Sem scroll, com quebra de linha) */
+.categories-row-section { 
+  margin-bottom: 40px; 
+  margin-top: -15px;
+}
+
+.categories-row {
+  display: flex;
+  flex-wrap: wrap; /* Faz os botões irem para a linha de baixo se não couberem */
+  justify-content: center; /* Centraliza o bloco todo na tela */
+  gap: 12px;
+}
+
+/* As "pílulas" de categoria mais elegantes e limpas */
+.category-pill {
+  background-color: white;
+  border: 1px solid #ddd;
+  padding: 10px 22px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #444;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.category-pill:hover {
+  background-color: #0A847C;
+  color: white;
+  border-color: #0A847C;
+  transform: translateY(-2px);
+}
+
+/* 5. ANÚNCIOS RELEVANTES LADO A LADO */
+.relevant-ads-section { margin-bottom: 50px; }
+
+.ads-row {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 15px;
+  scrollbar-width: thin;
+}
+
+.ad-card {
+  background-color: white;
+  min-width: 250px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.ad-card:hover { transform: translateY(-4px); }
+
+.ad-image-placeholder {
+  background-color: #e9ecef;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+}
+
+.ad-info { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
+
+.ad-info h3 {
+  font-size: 16px;
+  color: #0A3B66;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.ad-location { font-size: 13px; color: #888; margin-bottom: 15px; }
+
+.ad-price {
+  font-size: 18px;
+  font-weight: bold;
+  color: #0A847C;
+  margin-top: auto;
+}

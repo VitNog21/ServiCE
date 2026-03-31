@@ -1,45 +1,13 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ServiCE - Classificados</title>
-  <link rel="stylesheet" href="./css/style.css"> 
-</head>
-<body class="home-container">
-
-  <header class="header">
-    <img src="./assets/logo_service.png" alt="ServiCE Logo" class="logo" />
-    
-    <div class="search-container">
-      <input type="text" placeholder="Estou procurando por..." class="search-input" />
-    </div>
-    
-    <div id="user-menu" style="display: flex; align-items: center; gap: 15px;">
-      <button id="btn-login-nav" class="btn-login" onclick="window.location.href='login.html'">
-        Entrar / Cadastrar
-      </button>
-      
-      <img id="user-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Perfil" style="display: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid #0A3B66;" title="Sair (Logout)" />
-    </div>
-  </header>
-
-  <section class="banner-section">
-    <div class="banner-content">
-      <h2 class="banner-title">Descubra os melhores anúncios</h2>
-    </div>
-  </section>
-
-  <main class="main-content">
-    <h3 class="section-title">Explorar Categorias</h3>
-    
-    <div id="loading-msg">Carregando categorias...</div>
-    <div id="error-msg" style="color: red; display: none;"></div>
-    
-    <div id="category-grid" class="category-grid">
-      </div>
-  </main>
-
-  <script src="./js/script.js"></script> 
-</body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>service-frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
