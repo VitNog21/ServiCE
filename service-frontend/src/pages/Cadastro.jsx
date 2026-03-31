@@ -10,13 +10,13 @@ const Cadastro = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const navigate = useNavigate();
 
-  // Login/Cadastro com Google
+  // 1. Cadastro com Google (Supabase já loga automaticamente ao criar conta)
   const handleGoogleSignUp = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: window.location.origin // Volta para a Home
         }
       });
       if (error) throw error;
@@ -25,9 +25,10 @@ const Cadastro = () => {
     }
   };
 
-  // Cadastro Tradicional via Backend Node.js
+  // 2. Cadastro Tradicional (Via seu Backend Node.js)
   const handleRegister = async (e) => {
     e.preventDefault();
+
     if (password !== confirmPassword) {
       alert("As senhas não coincidem!");
       return;
@@ -41,12 +42,22 @@ const Cadastro = () => {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Erro ao criar conta');
 
-      alert(`Sucesso! Um e-mail de confirmação foi enviado para ${email}.`);
-      navigate('/login');
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao criar conta');
+      }
+
+      // IMPORTANTE: Salvando os dados para o usuário já estar "logado" ao chegar na Home
+      localStorage.setItem('service_user', JSON.stringify(data.user));
+      localStorage.setItem('service_token', data.token);
+
+      alert("Conta criada com sucesso! Bem-vindo ao ServiCE.");
+      
+      // Redireciona direto para a Home já logado
+      navigate('/');
+      
     } catch (error) {
-      alert(error.message);
+      alert("Erro no cadastro: " + error.message);
     }
   };
 
@@ -58,38 +69,70 @@ const Cadastro = () => {
           alt="ServiCE" 
           className="login-logo" 
           onClick={() => navigate('/')} 
+          style={{ cursor: 'pointer' }}
         />
-        <h2 className="login-title">Criar Conta</h2>
+        <h2 className="login-title">Criar sua conta</h2>
         
         <form onSubmit={handleRegister}>
           <div className="input-group">
             <label>Nome Completo</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+            <input 
+              type="text" 
+              placeholder="Digite seu nome"
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              required 
+            />
           </div>
+
           <div className="input-group">
             <label>E-mail</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input 
+              type="email" 
+              placeholder="seu@email.com"
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              required 
+            />
           </div>
+
           <div className="input-group">
             <label>Senha</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <input 
+              type="password" 
+              placeholder="Mínimo 6 caracteres"
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              required 
+            />
           </div>
+
           <div className="input-group">
             <label>Confirmar Senha</label>
-            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+            <input 
+              type="password" 
+              placeholder="Repita sua senha"
+              value={confirmPassword} 
+              onChange={(e) => setConfirmPassword(e.target.value)} 
+              required 
+            />
           </div>
-          <button type="submit" className="btn-primary">Cadastrar</button>
+
+          <button type="submit" className="btn-primary">Criar Conta</button>
         </form>
 
         <div className="divider">ou</div>
 
         <button type="button" className="btn-google" onClick={handleGoogleSignUp}>
-          <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" alt="Google" />
+          <img 
+            src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" 
+            alt="Google" 
+          />
           Cadastrar com Google
         </button>
 
         <p className="register-link">
-          Já tem uma conta? <Link to="/login">Entrar</Link>
+          Já tem uma conta? <Link to="/login">Entrar agora</Link>
         </p>
       </div>
     </div>

@@ -1,12 +1,80 @@
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../supabase';
 import '../css/global.css';
 
 const Home = () => {
+  const [user, setUser] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
+
+  // 1. Monitoramento de Sessão (Híbrido: Google + LocalStorage)
+  useEffect(() => {
+    const checkUser = async () => {
+      // Tenta buscar sessão do Google (Supabase)
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        // Se não tem Google, tenta buscar o login normal (LocalStorage)
+        const savedUser = localStorage.getItem('service_user');
+        if (savedUser) {
+          try {
+            setUser(JSON.parse(savedUser));
+          } catch (e) {
+            console.error("Erro ao ler usuário do localStorage", e);
+          }
+        }
+      }
+    };
+
+    checkUser();
+
+    // Ouvinte para mudanças em tempo real no Supabase (Google Login)
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+      } else if (!localStorage.getItem('service_user')) {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // 2. Lógica para fechar o dropdown ao clicar em qualquer lugar da tela
+  useEffect(() => {
+    const closeMenu = () => setShowDropdown(false);
+    
+    if (showDropdown) {
+      window.addEventListener('click', closeMenu);
+    }
+    
+    return () => window.removeEventListener('click', closeMenu);
+  }, [showDropdown]);
+
+  // Alterna a visibilidade do menu (impede que o clique feche o menu na mesma hora)
+  const toggleDropdown = (e) => {
+    e.stopPropagation();
+    setShowDropdown(!showDropdown);
+  };
+
+  const handleLogout = async () => {
+    // Limpa todas as frentes de login
+    await supabase.auth.signOut();
+    localStorage.removeItem('service_user');
+    localStorage.removeItem('service_token');
+    setUser(null);
+    setShowDropdown(false);
+    navigate('/');
+  };
 
   return (
     <div className="home-container">
-      {/* HEADER FINO E ESTRATÉGICO */}
+      {/* HEADER DINÂMICO E ESTRATÉGICO */}
       <header className="main-header">
         <img 
           src="/assets/logo_service.png" 
@@ -20,13 +88,39 @@ const Home = () => {
           <button>🔍</button>
         </div>
 
-        <nav>
-          <Link to="/login" className="btn-login-header">Entrar / Cadastrar</Link>
+        <nav className="header-nav">
+          {user ? (
+            /* VISUAL QUANDO LOGADO */
+            <div className="user-menu">
+              <Link to="/meus-anuncios" className="btn-my-ads">Meus Anúncios</Link>
+              
+              <div className="user-profile-icon" onClick={toggleDropdown}>
+                👤
+                {/* O menu recebe a classe 'active' baseada no estado showDropdown */}
+                <div 
+                  className={`dropdown-menu ${showDropdown ? 'active' : ''}`} 
+                  onClick={(e) => e.stopPropagation()} // Impede que cliques dentro do menu o fechem
+                >
+                  <div className="dropdown-header">
+                    <span className="user-email-text">{user.email}</span>
+                  </div>
+                  <hr />
+                  <Link to="/perfil" className="dropdown-item">Meu Perfil</Link>
+                  <button onClick={handleLogout} className="dropdown-item logout-item">
+                    Sair
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* VISUAL QUANDO DESLOGADO */
+            <Link to="/login" className="btn-login-header">Entrar / Cadastrar</Link>
+          )}
         </nav>
       </header>
 
       <main className="main-content">
-        {/* ESPAÇO DO SLIDER / BANNER DE CAMPANHAS */}
+        {/* BANNER DE CAMPANHAS */}
         <section className="banner-slider">
           <div className="slide-content">
             <h2>Ofertas Especiais da Semana!</h2>
@@ -34,19 +128,12 @@ const Home = () => {
           </div>
         </section>
 
-        {/* CATEGORIAS EM TELA CHEIA (Sem título, sem emojis, com quebra automática) */}
+        {/* CATEGORIAS EM TELA CHEIA (Sem scroll, com quebra automática) */}
         <section className="categories-row-section">
           <div className="categories-row">
-            <div className="category-pill">Manutenção</div>
-            <div className="category-pill">Beleza e Estética</div>
-            <div className="category-pill">Tecnologia</div>
-            <div className="category-pill">Aulas Particulares</div>
-            <div className="category-pill">Limpeza</div>
-            <div className="category-pill">Automotivo</div>
-            <div className="category-pill">Design</div>
-            <div className="category-pill">Saúde e Bem-estar</div>
-            <div className="category-pill">Reformas</div>
-            <div className="category-pill">Eventos</div>
+            {["Manutenção", "Beleza e Estética", "Tecnologia", "Aulas Particulares", "Limpeza", "Automotivo", "Design", "Saúde", "Reformas", "Eventos"].map((cat) => (
+              <div key={cat} className="category-pill">{cat}</div>
+            ))}
           </div>
         </section>
 
@@ -54,7 +141,6 @@ const Home = () => {
         <section className="relevant-ads-section">
           <h2 className="section-title">Anúncios mais relevantes na sua região</h2>
           <div className="ads-row">
-            {/* Card 1 */}
             <div className="ad-card">
               <div className="ad-image-placeholder">📷</div>
               <div className="ad-info">
@@ -63,25 +149,14 @@ const Home = () => {
                 <span className="ad-price">R$ 200,00</span>
               </div>
             </div>
-            {/* Card 2 */}
             <div className="ad-card">
               <div className="ad-image-placeholder">📷</div>
               <div className="ad-info">
-                <h3>Manicure e Pedicure a Domicílio</h3>
+                <h3>Manicure a Domicílio</h3>
                 <p className="ad-location">📍 Fortaleza, CE</p>
                 <span className="ad-price">R$ 60,00</span>
               </div>
             </div>
-            {/* Card 3 */}
-            <div className="ad-card">
-              <div className="ad-image-placeholder">📷</div>
-              <div className="ad-info">
-                <h3>Formatação de Computadores</h3>
-                <p className="ad-location">📍 Fortaleza, CE</p>
-                <span className="ad-price">R$ 100,00</span>
-              </div>
-            </div>
-            {/* Card 4 */}
             <div className="ad-card">
               <div className="ad-image-placeholder">📷</div>
               <div className="ad-info">
