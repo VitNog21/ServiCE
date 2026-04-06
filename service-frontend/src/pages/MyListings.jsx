@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabase';
+import { Button } from '@/components/ui/button';
 import '../css/my-listings.css';
 
 const MyListings = () => {
@@ -74,17 +76,28 @@ const MyListings = () => {
 
   return (
     <div className="my-listings-container">
+      <Button
+        type="button"
+        variant="ghost"
+        className="mb-4"
+        onClick={() => navigate(-1)}
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Voltar
+      </Button>
+
       <div className="my-listings-header">
         <div>
           <h1>Meus Anúncios</h1>
           <p>Faça a gestão dos serviços que você oferece no ServiCE.</p>
         </div>
-        <button 
-          className="btn-create-new" 
+        <Button
+          type="button"
+          className="btn-create-new"
           onClick={() => navigate('/criar-anuncio')}
         >
           + Criar Anúncio
-        </button>
+        </Button>
       </div>
 
       {listings.length === 0 ? (
@@ -92,9 +105,9 @@ const MyListings = () => {
           <div className="empty-icon">📦</div>
           <h2>Você ainda não tem anúncios</h2>
           <p>Comece a oferecer os seus serviços agora mesmo e alcance mais clientes.</p>
-          <button className="btn-primary" onClick={() => navigate('/criar-anuncio')}>
+          <Button type="button" className="btn-primary" onClick={() => navigate('/criar-anuncio')}>
             Criar meu primeiro anúncio
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="listings-grid">

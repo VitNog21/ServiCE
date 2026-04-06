@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
-import { Package, ShoppingBag, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Package, ShoppingBag, CheckCircle2, Clock, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 
@@ -64,6 +64,11 @@ export default function MyOrders() {
 
   return (
     <div className="max-w-5xl mx-auto p-6">
+      <Button type="button" variant="ghost" className="mb-4" onClick={() => navigate(-1)}>
+        <ArrowLeft className="h-4 w-4" />
+        Voltar
+      </Button>
+
       <header className="mb-8 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gerenciar Pedidos</h1>
@@ -141,7 +146,7 @@ export default function MyOrders() {
                   {pedido.status === 'pendente' && (
                     <Button 
                       variant="default" 
-                      className="w-full bg-blue-600"
+                      className="w-full"
                       onClick={() => alert('Redirecionando para o pagamento...')}
                     >
                       Pagar Agora

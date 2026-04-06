@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabase';
+import { Button } from '@/components/ui/button';
 import '../css/profile.css';
 
 const EditProfile = () => {
@@ -197,6 +199,16 @@ const EditProfile = () => {
   return (
     <div className="profile-body">
       <div className="profile-card">
+        <Button
+          type="button"
+          variant="ghost"
+          className="mb-4"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </Button>
+
         <div className="profile-header">
           <h1 className="profile-title">Editar Perfil</h1>
           <button type="button" className="btn-logout" onClick={handleLogout}>Sair</button>

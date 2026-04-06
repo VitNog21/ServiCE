@@ -118,7 +118,7 @@ export default function ProductDetails() {
             <Button 
               onClick={handleCompra} 
               disabled={comprando}
-              className="w-full h-14 text-lg bg-blue-600 hover:bg-blue-700 transition-all"
+              className="w-full h-14 text-lg transition-all"
             >
               <ShoppingCart className="mr-2" />
               {comprando ? 'Processando...' : 'Comprar Agora'}

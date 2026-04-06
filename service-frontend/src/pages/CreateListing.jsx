@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabase';
+import { Button } from '@/components/ui/button';
 import '../css/create-listing.css';
 
 const CreateListing = () => {
@@ -159,6 +161,16 @@ const CreateListing = () => {
   return (
     <div className="create-listing-container">
       <div className="form-card">
+        <Button
+          type="button"
+          variant="ghost"
+          className="mb-4"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </Button>
+
         <h2>Criar Novo Anúncio</h2>
         
         {message.text && (
@@ -266,12 +278,12 @@ const CreateListing = () => {
 
           {/* BOTÕES */}
           <div className="button-group">
-            <button type="submit" className="btn-save" disabled={loading}>
+            <Button type="submit" className="btn-save" disabled={loading}>
               {loading ? 'A processar...' : 'Publicar Anúncio'}
-            </button>
-            <button type="button" className="btn-cancel" onClick={() => navigate('/meus-anuncios')} disabled={loading}>
+            </Button>
+            <Button type="button" variant="outline" className="btn-cancel" onClick={() => navigate('/meus-anuncios')} disabled={loading}>
               Cancelar
-            </button>
+            </Button>
           </div>
         </form>
       </div>
