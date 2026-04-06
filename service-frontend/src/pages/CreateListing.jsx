@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 import '../css/create-listing.css';
 
 const CreateListing = () => {
@@ -21,6 +22,7 @@ const CreateListing = () => {
   });
 
   const [files, setFiles] = useState([]);
+  const [selectedCoordinates, setSelectedCoordinates] = useState({ lat: null, lon: null });
 
   // 1. Verificação de Sessão (Híbrida) e Busca de Dados
   useEffect(() => {
@@ -78,6 +80,16 @@ const CreateListing = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleAddressInputChange = (addressText) => {
+    setFormData(prev => ({ ...prev, address_text: addressText }));
+    setSelectedCoordinates({ lat: null, lon: null });
+  };
+
+  const handleAddressSelect = ({ display_name, lat, lon }) => {
+    setFormData(prev => ({ ...prev, address_text: display_name }));
+    setSelectedCoordinates({ lat, lon });
+  };
+
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
     
@@ -99,6 +111,12 @@ const CreateListing = () => {
 
     if (!formData.title || !formData.price || !formData.category_id) {
       setMessage({ type: 'error', text: 'Preencha os campos obrigatórios (Título, Categoria e Preço).' });
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.address_text || selectedCoordinates.lat === null || selectedCoordinates.lon === null) {
+      setMessage({ type: 'error', text: 'Selecione um endereço válido na lista de sugestões.' });
       setLoading(false);
       return;
     }
@@ -135,8 +153,8 @@ const CreateListing = () => {
         p_price: parseFloat(formData.price),
         p_address_text: formData.address_text,
         p_image_urls: uploadedUrls,
-        p_lat: -3.7289, // Latitude provisória (Fortaleza)
-        p_lng: -38.5277  // Longitude provisória (Fortaleza)
+        p_lat: selectedCoordinates.lat,
+        p_lng: selectedCoordinates.lon
       });
 
       if (rpcError) throw rpcError;
@@ -240,15 +258,13 @@ const CreateListing = () => {
             />
           </div>
 
-          {/* LOCALIZAÇÃO (TEXTO) */}
+          {/* LOCALIZAÇÃO (AUTOCOMPLETE OSM) */}
           <div className="input-group">
             <label>Endereço / Região de Atendimento *</label>
-            <input 
-              name="address_text" 
-              required 
+            <AddressAutocomplete
               value={formData.address_text}
-              onChange={handleInputChange} 
-              placeholder="Ex: Atendo em toda a região de Fortaleza, CE" 
+              onChange={handleAddressInputChange}
+              onAddressSelect={handleAddressSelect}
               disabled={loading}
             />
           </div>
