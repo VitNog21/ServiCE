@@ -1,74 +1,92 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../supabase'; // O arquivo que criamos com as chaves VITE_
+import { supabase } from '../supabase';
 import '../css/login.css';
 
 const Login = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
 
-  // 1. Lógica para Login Tradicional (Conecta no seu Node.js)
+  // 1. Login com Email e Senha (VIA SUPABASE)
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
     try {
-      const response = await fetch('http://localhost:3000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Erro ao entrar');
+      if (error) throw error;
 
-      // Salva os dados do usuário vindo do seu Backend
-      localStorage.setItem('service_user', JSON.stringify(data.user));
-      localStorage.setItem('service_token', data.token);
+      setMessage({ type: 'success', text: 'Login efetuado com sucesso!' });
       
-      navigate('/');
+      // Removemos lixo antigo do localStorage por segurança
+      localStorage.removeItem('service_user'); 
+      
+      setTimeout(() => navigate('/'), 1000);
     } catch (error) {
-      alert(error.message);
+      console.error('Erro no login:', error.message);
+      setMessage({ type: 'error', text: 'Email ou senha incorretos.' });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 2. Lógica para Login com Google (Conecta direto no Supabase)
+  // 2. Login com Google (VIA SUPABASE OAUTH)
   const handleGoogleLogin = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Garante que ele volte para a sua Home após o login
-          redirectTo: window.location.origin 
+          // Usa a origem exata do seu navegador para redirecionar de volta
+          redirectTo: window.location.origin
         }
       });
+
       if (error) throw error;
     } catch (error) {
-      alert("Erro ao autenticar com Google: " + error.message);
+      console.error('Erro no Google Login:', error.message);
+      setMessage({ type: 'error', text: 'Erro ao conectar com o Google.' });
     }
   };
 
   return (
-    <div className="login-body">
+    <div className="login-container">
       <div className="login-card">
+        
+        {/* LOGO DO SITE */}
         <img 
           src="/assets/logo_service.png" 
           alt="ServiCE" 
           className="login-logo" 
-          onClick={() => navigate('/')} 
+          onClick={() => navigate('/')}
         />
-        <h2 className="login-title">Entrar no ServiCE</h2>
         
-        {/* Formulário de E-mail/Senha */}
+        <h2 className="login-title">Acesse sua conta</h2>
+        
+        {message.text && (
+          <div className={`alert alert-${message.type}`}>{message.text}</div>
+        )}
+
         <form onSubmit={handleLogin}>
           <div className="input-group">
-            <label>E-mail</label>
+            <label>Email</label>
             <input 
               type="email" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
               required 
+              disabled={loading}
+              placeholder="seu@email.com"
             />
           </div>
+
           <div className="input-group">
             <label>Senha</label>
             <input 
@@ -76,25 +94,32 @@ const Login = () => {
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
               required 
+              disabled={loading}
+              placeholder="••••••••"
             />
           </div>
-          <button type="submit" className="btn-primary">Entrar</button>
+
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'A entrar...' : 'Entrar'}
+          </button>
         </form>
 
         <div className="divider">ou</div>
 
-        {/* Botão do Google atualizado */}
-        <button 
-          type="button" 
-          className="btn-google" 
-          onClick={handleGoogleLogin}
-        >
-          <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" alt="Google" />
+        {/* BOTÃO GOOGLE COM SVG OFICIAL */}
+        <button type="button" className="btn-google" onClick={handleGoogleLogin} disabled={loading}>
+          <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style={{ width: '20px', height: '20px' }}>
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+            <path fill="#4285F4" d="M46.64 24.32c0-1.63-.15-3.26-.44-4.84H24v9.03h12.72c-.53 2.84-2.14 5.25-4.59 6.81l7.41 5.74c4.35-4.01 6.81-9.92 6.81-16.74z"></path>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.41-5.74c-2.22 1.48-5.07 2.36-8.48 2.36-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+            <path fill="none" d="M0 0h48v48H0z"></path>
+          </svg>
           Entrar com Google
         </button>
 
         <p className="register-link">
-          Não tem conta? <Link to="/cadastro">Cadastre-se</Link>
+          Não tem conta? <Link to="/cadastro">Cadastre-se aqui</Link>
         </p>
       </div>
     </div>

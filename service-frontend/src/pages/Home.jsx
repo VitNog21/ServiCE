@@ -5,76 +5,100 @@ import '../css/global.css';
 
 const Home = () => {
   const [user, setUser] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // 1. Monitoramento de Sessão (Híbrido: Google + LocalStorage)
+  // Função isolada para buscar a foto (do Perfil ou do Google)
+  const fetchUserAvatar = async (currentUser) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (profile?.avatar_url) {
+        setAvatarUrl(profile.avatar_url);
+      } else if (currentUser.user_metadata?.avatar_url) {
+        setAvatarUrl(currentUser.user_metadata.avatar_url);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar avatar:", error);
+    }
+  };
+
   useEffect(() => {
-    const checkUser = async () => {
-      // Tenta buscar sessão do Google (Supabase)
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        setUser(session.user);
-      } else {
-        // Se não tem Google, tenta buscar o login normal (LocalStorage)
-        const savedUser = localStorage.getItem('service_user');
-        if (savedUser) {
-          try {
-            setUser(JSON.parse(savedUser));
-          } catch (e) {
-            console.error("Erro ao ler usuário do localStorage", e);
-          }
+    let isMounted = true;
+
+    const checkInitialSession = async () => {
+      try {
+        setLoading(true);
+        // 1. O Ponto Chave: getSession() primeiro!
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) throw error;
+
+        if (session?.user && isMounted) {
+          setUser(session.user);
+          await fetchUserAvatar(session.user);
         }
+      } catch (error) {
+        console.error('Erro na verificação inicial:', error);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
-    checkUser();
+    checkInitialSession();
 
-    // Ouvinte para mudanças em tempo real no Supabase (Google Login)
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-      } else if (!localStorage.getItem('service_user')) {
-        setUser(null);
+    // 2. O Radar do Google: Fica à escuta do evento pós-redirect!
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Evento de Autenticação:', event); // Ajuda a debugar
+      
+      if (isMounted) {
+        if (session?.user) {
+          // O Google terminou a viagem! Atualiza a interface IMEDIATAMENTE.
+          setUser(session.user);
+          await fetchUserAvatar(session.user);
+          setLoading(false);
+        } else {
+          // Utilizador deslogado
+          setUser(null);
+          setAvatarUrl(null);
+          setLoading(false);
+        }
       }
     });
 
     return () => {
-      authListener.subscription.unsubscribe();
+      isMounted = false;
+      subscription.unsubscribe();
     };
   }, []);
 
-  // 2. Lógica para fechar o dropdown ao clicar em qualquer lugar da tela
   useEffect(() => {
     const closeMenu = () => setShowDropdown(false);
-    
-    if (showDropdown) {
-      window.addEventListener('click', closeMenu);
-    }
-    
+    if (showDropdown) window.addEventListener('click', closeMenu);
     return () => window.removeEventListener('click', closeMenu);
   }, [showDropdown]);
 
-  // Alterna a visibilidade do menu (impede que o clique feche o menu na mesma hora)
   const toggleDropdown = (e) => {
     e.stopPropagation();
     setShowDropdown(!showDropdown);
   };
 
   const handleLogout = async () => {
-    // Limpa todas as frentes de login
     await supabase.auth.signOut();
-    localStorage.removeItem('service_user');
-    localStorage.removeItem('service_token');
     setUser(null);
+    setAvatarUrl(null);
     setShowDropdown(false);
     navigate('/');
   };
 
   return (
     <div className="home-container">
-      {/* HEADER DINÂMICO E ESTRATÉGICO */}
       <header className="main-header">
         <img 
           src="/assets/logo_service.png" 
@@ -89,38 +113,43 @@ const Home = () => {
         </div>
 
         <nav className="header-nav">
-          {user ? (
-            /* VISUAL QUANDO LOGADO */
+          {loading ? (
+            /* Mostrar Spinner ou Vazio enquanto o radar trabalha */
+            <div className="loader-placeholder">A carregar...</div>
+          ) : user ? (
             <div className="user-menu">
               <Link to="/meus-anuncios" className="btn-my-ads">Meus Anúncios</Link>
               
-              <div className="user-profile-icon" onClick={toggleDropdown}>
-                👤
-                {/* O menu recebe a classe 'active' baseada no estado showDropdown */}
-                <div 
-                  className={`dropdown-menu ${showDropdown ? 'active' : ''}`} 
-                  onClick={(e) => e.stopPropagation()} // Impede que cliques dentro do menu o fechem
-                >
-                  <div className="dropdown-header">
-                    <span className="user-email-text">{user.email}</span>
+              <div className="user-profile-icon" onClick={toggleDropdown} style={{ cursor: 'pointer', position: 'relative' }}>
+                {avatarUrl ? (
+                  <img 
+                    src={avatarUrl} 
+                    alt="Perfil" 
+                    style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #0A847C' }} 
+                  />
+                ) : (
+                  <span style={{ fontSize: '24px' }}>👤</span>
+                )}
+
+                {showDropdown && (
+                  <div className="dropdown-menu active" onClick={(e) => e.stopPropagation()}>
+                    <div className="dropdown-header">
+                      <span className="user-email-text">{user.email}</span>
+                    </div>
+                    <hr />
+                    <Link to="/perfil" className="dropdown-item">Meu Perfil</Link>
+                    <button onClick={handleLogout} className="dropdown-item logout-item">Sair</button>
                   </div>
-                  <hr />
-                  <Link to="/perfil" className="dropdown-item">Meu Perfil</Link>
-                  <button onClick={handleLogout} className="dropdown-item logout-item">
-                    Sair
-                  </button>
-                </div>
+                )}
               </div>
             </div>
           ) : (
-            /* VISUAL QUANDO DESLOGADO */
             <Link to="/login" className="btn-login-header">Entrar / Cadastrar</Link>
           )}
         </nav>
       </header>
 
       <main className="main-content">
-        {/* BANNER DE CAMPANHAS */}
         <section className="banner-slider">
           <div className="slide-content">
             <h2>Ofertas Especiais da Semana!</h2>
@@ -128,7 +157,6 @@ const Home = () => {
           </div>
         </section>
 
-        {/* CATEGORIAS EM TELA CHEIA (Sem scroll, com quebra automática) */}
         <section className="categories-row-section">
           <div className="categories-row">
             {["Manutenção", "Beleza e Estética", "Tecnologia", "Aulas Particulares", "Limpeza", "Automotivo", "Design", "Saúde", "Reformas", "Eventos"].map((cat) => (
@@ -137,34 +165,20 @@ const Home = () => {
           </div>
         </section>
 
-        {/* ANÚNCIOS RELEVANTES (LADO A LADO) */}
         <section className="relevant-ads-section">
           <h2 className="section-title">Anúncios mais relevantes na sua região</h2>
           <div className="ads-row">
-            <div className="ad-card">
-              <div className="ad-image-placeholder">📷</div>
-              <div className="ad-info">
-                <h3>Instalação de Ar Condicionado</h3>
-                <p className="ad-location">📍 Fortaleza, CE</p>
-                <span className="ad-price">R$ 200,00</span>
+            {/* Cards Mockados para a UI */}
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="ad-card">
+                <div className="ad-image-placeholder">📷</div>
+                <div className="ad-info">
+                  <h3>Serviço Exemplo {i}</h3>
+                  <p className="ad-location">📍 Fortaleza, CE</p>
+                  <span className="ad-price">R$ 150,00</span>
+                </div>
               </div>
-            </div>
-            <div className="ad-card">
-              <div className="ad-image-placeholder">📷</div>
-              <div className="ad-info">
-                <h3>Manicure a Domicílio</h3>
-                <p className="ad-location">📍 Fortaleza, CE</p>
-                <span className="ad-price">R$ 60,00</span>
-              </div>
-            </div>
-            <div className="ad-card">
-              <div className="ad-image-placeholder">📷</div>
-              <div className="ad-info">
-                <h3>Eletricista Residencial 24h</h3>
-                <p className="ad-location">📍 Fortaleza, CE</p>
-                <span className="ad-price">A combinar</span>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
       </main>
