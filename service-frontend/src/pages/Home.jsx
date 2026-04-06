@@ -11,7 +11,23 @@ const Home = () => {
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [anuncios, setAnuncios] = useState([]); // Estado para os anúncios reais
   const navigate = useNavigate();
+
+  // Função para buscar os anúncios reais
+  useEffect(() => {
+    async function fetchAnuncios() {
+      const { data, error } = await supabase
+        .from('anuncios')
+        .select('*')
+        .order('data_criacao', { ascending: false });
+      
+      if (!error && data) {
+        setAnuncios(data);
+      }
+    }
+    fetchAnuncios();
+  }, []);
 
   // Função isolada para buscar a foto (do Perfil ou do Google)
   const fetchUserAvatar = async (currentUser) => {
@@ -35,43 +51,32 @@ const Home = () => {
   useEffect(() => {
     let isMounted = true;
 
-    const checkInitialSession = async () => {
+    const initialize = async () => {
       try {
-        setLoading(true);
-        // 1. O Ponto Chave: getSession() primeiro!
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) throw error;
-
+        const { data: { session } } = await supabase.auth.getSession();
         if (session?.user && isMounted) {
           setUser(session.user);
-          await fetchUserAvatar(session.user);
+          fetchUserAvatar(session.user); // Busca em segundo plano
         }
       } catch (error) {
-        console.error('Erro na verificação inicial:', error);
+        console.error('Erro ao inicializar sessão:', error);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) setLoading(false); // Sempre finaliza o loading
       }
     };
 
-    checkInitialSession();
+    initialize();
 
-    // 2. O Radar do Google: Fica à escuta do evento pós-redirect!
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Evento de Autenticação:', event); // Ajuda a debugar
-      
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (isMounted) {
         if (session?.user) {
-          // O Google terminou a viagem! Atualiza a interface IMEDIATAMENTE.
           setUser(session.user);
-          await fetchUserAvatar(session.user);
-          setLoading(false);
+          fetchUserAvatar(session.user);
         } else {
-          // Utilizador deslogado
           setUser(null);
           setAvatarUrl(null);
-          setLoading(false);
         }
+        setLoading(false); // Garante que o loading saia após qualquer mudança
       }
     });
 
@@ -138,6 +143,13 @@ const Home = () => {
             <div className="loader-placeholder">A carregar...</div>
           ) : user ? (
             <div className="user-menu">
+              <Link 
+                to="/meus-pedidos" 
+                className="btn-my-orders" 
+                style={{ marginRight: '15px', color: '#0A847C', fontWeight: '600', textDecoration: 'none' }}
+              >
+                Meus Pedidos
+              </Link>
               <Link to="/meus-anuncios" className="btn-my-ads">Meus Anúncios</Link>
               
               <div className="user-profile-icon" onClick={toggleDropdown} style={{ cursor: 'pointer', position: 'relative' }}>
@@ -188,17 +200,39 @@ const Home = () => {
         <section className="relevant-ads-section">
           <h2 className="section-title">Anúncios mais relevantes na sua região</h2>
           <div className="ads-row">
-            {/* Cards Mockados para a UI */}
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="ad-card">
-                <div className="ad-image-placeholder">📷</div>
-                <div className="ad-info">
-                  <h3>Serviço Exemplo {i}</h3>
-                  <p className="ad-location">📍 Fortaleza, CE</p>
-                  <span className="ad-price">R$ 150,00</span>
-                </div>
+            {anuncios.length === 0 ? (
+              <div className="text-center py-10 w-full text-gray-500 italic">
+                Nenhum anúncio disponível no momento.
               </div>
-            ))}
+            ) : (
+              anuncios.map((anuncio) => (
+                <Link to={`/detalhes/${anuncio.id}`} key={anuncio.id} className="ad-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <div className="ad-image-placeholder">
+                    {anuncio.imagem_url ? (
+                      <img 
+                        src={anuncio.imagem_url} 
+                        alt={anuncio.titulo} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          console.error(`Falha ao carregar imagem: ${anuncio.imagem_url}`);
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = '🖼️ Link Quebrado';
+                        }}
+                      />
+                    ) : (
+                      "📷"
+                    )}
+                  </div>
+                  <div className="ad-info">
+                    <h3>{anuncio.titulo}</h3>
+                    <p className="ad-location">📍 {anuncio.localizacao || 'Brasil'}</p>
+                    <span className="ad-price">
+                      R$ {anuncio.preco?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </section>
       </main>
