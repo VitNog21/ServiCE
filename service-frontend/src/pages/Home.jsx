@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { supabase } from '../supabase';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import '../css/global.css';
 
 const Home = () => {
@@ -83,10 +86,27 @@ const Home = () => {
           onClick={() => navigate('/')}
         />
         
-        <div className="header-search">
-          <input type="text" placeholder="Buscar serviços, encanador, eletricista..." />
-          <button>🔍</button>
-        </div>
+        <form className="header-search m-0 border-0 bg-transparent" onSubmit={(e) => e.preventDefault()}>
+          <div className="w-full max-w-3xl mx-auto my-8 px-4">
+        <form 
+        onSubmit={(e) => e.preventDefault()} 
+        className="flex items-center w-full bg-white p-1.5 rounded-lg shadow-md border border-gray-200"
+      >
+      <Input 
+        type="text" 
+        placeholder="Estou procurando por..." 
+        className="flex-1 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-base md:text-lg px-4"
+      />
+    <Button 
+      type="submit" 
+      className="bg-[#10B981] hover:bg-[#059669] text-white px-6 h-12 rounded-md shrink-0 flex items-center gap-2"
+    >
+      <Search className="h-5 w-5" />
+      <span className="hidden sm:inline">Buscar</span>
+    </Button>
+  </form>
+</div>
+        </form>
 
         <nav className="header-nav">
           {user ? (
