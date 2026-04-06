@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 /* --- RESET E ESTRUTURA BASE --- */
 * {
   margin: 0;
