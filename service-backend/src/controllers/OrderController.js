@@ -22,7 +22,7 @@ export const OrderController = {
       .from('pedidos')
       .select(`
         *,
-        anuncios (titulo, imagem_url)
+        listings (title, image_urls)
       `)
       .or(`comprador_id.eq.${userId},vendedor_id.eq.${userId}`)
       .order('data_criacao', { ascending: false });

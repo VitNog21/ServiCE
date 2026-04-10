@@ -1,28 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, Search } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import '../css/global.css';
 
-const GEO_OPTIONS = {
-  enableHighAccuracy: true,
-  timeout: 10000,
-  maximumAge: 60000,
-};
-
-const Home = () => {
+const CategoryProducts = () => {
+  const { categoryId } = useParams();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [listings, setListings] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [categoryName, setCategoryName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [authLoading, setAuthLoading] = useState(true);
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchUserAvatar = async (currentUser) => {
     try {
@@ -40,66 +35,6 @@ const Home = () => {
     } catch (fetchError) {
       console.error('Erro ao buscar avatar:', fetchError);
     }
-  };
-
-  const getBrowserCoordinates = () => {
-    if (!navigator.geolocation) {
-      return Promise.reject(new Error('Geolocalização indisponível'));
-    }
-
-    return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            lat: position.coords.latitude,
-            lon: position.coords.longitude,
-          });
-        },
-        reject,
-        GEO_OPTIONS
-      );
-    });
-  };
-
-  const getIpCoordinates = async () => {
-    const response = await fetch('https://ipapi.co/json/');
-
-    if (!response.ok) {
-      throw new Error('Falha ao obter localização por IP.');
-    }
-
-    const data = await response.json();
-    const lat = Number(data.latitude);
-    const lon = Number(data.longitude);
-
-    if (Number.isNaN(lat) || Number.isNaN(lon)) {
-      throw new Error('Coordenadas por IP inválidas.');
-    }
-
-    return { lat, lon };
-  };
-
-  const getUserCoordinates = async () => {
-    try {
-      return await getBrowserCoordinates();
-    } catch (browserError) {
-      console.warn('Fallback para IP:', browserError);
-      return getIpCoordinates();
-    }
-  };
-
-  const formatDistance = (distanceMeters) => {
-    const distance = Number(distanceMeters);
-
-    if (Number.isNaN(distance)) {
-      return 'Distância indisponível';
-    }
-
-    if (distance < 1000) {
-      return `A ${Math.round(distance)}m de você`;
-    }
-
-    return `A ${(distance / 1000).toFixed(distance >= 10000 ? 0 : 1)}km de você`;
   };
 
   useEffect(() => {
@@ -140,76 +75,24 @@ const Home = () => {
     };
   }, []);
 
-  // Buscar categorias que têm anúncios
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        // Buscar todas as categorias que têm anúncios ativos
-        const { data, error } = await supabase
-          .from('listings')
-          .select('category:categories(id, name)', { count: 'exact' })
-          .eq('status', 'active');
-
-        if (error) throw error;
-
-        // Extrair categorias únicas
-        const uniqueCategories = [];
-        const categoryIds = new Set();
-
-        if (data) {
-          data.forEach((listing) => {
-            if (listing.category && !categoryIds.has(listing.category.id)) {
-              categoryIds.add(listing.category.id);
-              uniqueCategories.push({
-                id: listing.category.id,
-                name: listing.category.name
-              });
-            }
-          });
-        }
-
-        console.log('✅ Categorias carregadas:', uniqueCategories);
-        setCategories(uniqueCategories);
-      } catch (error) {
-        console.error('❌ Erro ao buscar categorias:', error);
-      }
-    };
-
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchNearbyListings = async () => {
+    const fetchCategoryProducts = async () => {
       try {
         setLoading(true);
         setError('');
 
-        try {
-          const { lat, lon } = await getUserCoordinates();
-          console.log('📍 Coordenadas obtidas:', { lat, lon });
+        // Buscar a categoria
+        const { data: categoryData, error: categoryError } = await supabase
+          .from('categories')
+          .select('name')
+          .eq('id', categoryId)
+          .single();
 
-          const { data, error: rpcError } = await supabase.rpc('buscar_anuncios_por_proximidade', {
-            lat,
-            lon,
-          });
+        if (categoryError) throw categoryError;
+        setCategoryName(categoryData?.name || 'Categoria');
 
-          if (rpcError) {
-            throw rpcError;
-          }
-
-          if (isMounted) {
-            setListings(Array.isArray(data) ? data : []);
-          }
-          return; // Sucesso, sair
-        } catch (geoError) {
-          console.warn('⚠️ RPC de proximidade falhou:', geoError.message);
-        }
-
-        // Fallback: buscar todos os anúncios se a RPC falhar
-        console.log('🔄 Usando fallback - buscando todos os anúncios...');
-        const { data: fallbackData, error: fallbackError } = await supabase
+        // Buscar anúncios dessa categoria
+        const { data, error: listingsError } = await supabase
           .from('listings')
           .select(`
             id,
@@ -217,40 +100,29 @@ const Home = () => {
             description,
             price,
             image_urls,
-            category:categories(id, name),
+            category:categories(name),
             address_text,
             created_at
           `)
+          .eq('category_id', categoryId)
           .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(50);
+          .order('created_at', { ascending: false });
 
-        if (fallbackError) {
-          console.error('❌ Erro no fallback:', fallbackError);
-          throw fallbackError;
-        }
-
-        if (isMounted) {
-          console.log('✅ Anúncios carregados:', fallbackData?.length || 0);
-          setListings(Array.isArray(fallbackData) ? fallbackData : []);
-        }
+        if (listingsError) throw listingsError;
+        
+        console.log('✅ Anúncios da categoria carregados:', data?.length || 0);
+        setListings(data || []);
       } catch (fetchError) {
         console.error('❌ Erro ao carregar anúncios:', fetchError);
-        if (isMounted) {
-          setError(fetchError.message || 'Não foi possível carregar os anúncios.');
-          setListings([]);
-        }
+        setError(fetchError.message || 'Não foi possível carregar os anúncios.');
+        setListings([]);
       } finally {
-        if (isMounted) setLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchNearbyListings();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    fetchCategoryProducts();
+  }, [categoryId]);
 
   useEffect(() => {
     const closeMenu = () => setShowDropdown(false);
@@ -275,6 +147,12 @@ const Home = () => {
     navigate('/');
   };
 
+  // Função para formatar moeda
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
+  };
+
+  // Filtrar anúncios por busca
   const filteredListings = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
 
@@ -288,8 +166,20 @@ const Home = () => {
     });
   }, [listings, searchTerm]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#0A847C]"></div>
+          <p className="mt-4 text-slate-600">Carregando anúncios...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="home-container">
+      {/* Header */}
       <header className="main-header">
         <img
           src="/assets/logo_service.png"
@@ -304,7 +194,7 @@ const Home = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Estou procurando por..."
+              placeholder={`Buscar em ${categoryName}...`}
               className="h-9 border-0 px-4 text-xs shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <Button
@@ -353,41 +243,14 @@ const Home = () => {
         </nav>
       </header>
 
+      {/* Conteúdo Principal */}
       <main className="main-content">
-        <section className="banner-slider">
-          <div className="slide-content">
-            <h2>Ofertas Especiais da Semana!</h2>
-            <p>Contrate os melhores profissionais mais próximos de você com segurança.</p>
-          </div>
-        </section>
-
-        <section className="categories-row-section">
-          <div className="categories-row">
-            {categories.length > 0 ? (
-              categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => navigate(`/categoria/${cat.id}`)}
-                  className="category-pill"
-                  style={{ cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                  {cat.name}
-                </button>
-              ))
-            ) : (
-              <div style={{ color: '#94a3b8', fontSize: '14px' }}>Nenhuma categoria disponível</div>
-            )}
-          </div>
-        </section>
-
         <section className="relevant-ads-section">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 className="section-title">Anúncios mais relevantes na sua região</h2>
+              <h2 className="section-title">{categoryName}</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Baseado na sua localização atual e ordenado pela proximidade.
+                {filteredListings.length} anúncio{filteredListings.length !== 1 ? 's' : ''} disponível{filteredListings.length !== 1 ? 's' : ''}
               </p>
             </div>
 
@@ -404,22 +267,11 @@ const Home = () => {
             </div>
           )}
 
-          {loading ? (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {[1, 2, 3].map((skeleton) => (
-                <div key={skeleton} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <div className="h-52 animate-pulse bg-slate-200" />
-                  <div className="space-y-3 p-4">
-                    <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
-                    <div className="h-3 w-1/2 animate-pulse rounded bg-slate-200" />
-                    <div className="h-5 w-24 animate-pulse rounded bg-slate-200" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : filteredListings.length === 0 ? (
+          {filteredListings.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center text-slate-500">
-              Nenhum anúncio disponível para sua região no momento.
+              {searchTerm.trim() 
+                ? `Nenhum resultado para "${searchTerm.trim()}"` 
+                : 'Nenhum anúncio disponível nesta categoria.'}
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -429,14 +281,6 @@ const Home = () => {
                   : null;
                 const title = listing.title || 'Anúncio sem título';
                 const priceValue = listing.price ?? 0;
-                const distanceMeters = listing.distance_meters;
-                const categoryName = listing.category?.name || 'Serviço';
-
-                const distanceLabel = Number.isFinite(Number(distanceMeters))
-                  ? Number(distanceMeters) < 1000
-                    ? `A ${Math.round(Number(distanceMeters))}m de você`
-                    : `A ${(Number(distanceMeters) / 1000).toFixed(Number(distanceMeters) >= 10000 ? 0 : 1)}km de você`
-                  : 'Distância indisponível';
 
                 return (
                   <Link
@@ -445,14 +289,7 @@ const Home = () => {
                     className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl h-full"
                     style={{ textDecoration: 'none', color: 'inherit' }}
                   >
-                    {/* Badge de Categoria */}
-                    <div className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 rounded-lg bg-white/95 px-3 py-1.5 backdrop-blur-sm shadow-md">
-                      <span className="text-xs font-semibold text-[#0A847C] uppercase tracking-wide">
-                        {categoryName.slice(0, 12)}
-                      </span>
-                    </div>
-
-                    {/* Container de imagem com overlay */}
+                    {/* Container de imagem */}
                     <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden flex-shrink-0">
                       {imageUrl ? (
                         <img
@@ -478,7 +315,7 @@ const Home = () => {
                         </h3>
                         <div className="flex items-center gap-1 text-xs text-slate-600">
                           <span className="inline-block">📍</span>
-                          <p className="truncate">{distanceLabel}</p>
+                          <p className="truncate">{listing.address_text || 'Localização não disponível'}</p>
                         </div>
                       </div>
 
@@ -506,4 +343,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default CategoryProducts;

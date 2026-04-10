@@ -8,7 +8,7 @@ import EditProfile from './pages/EditProfile';
 import CreateListing from './pages/CreateListing';
 import MyListings from './pages/MyListings';
 import ProductDetails from './pages/ProductDetails';
-import MyOrders from './pages/MyOrders';
+import CategoryProducts from './pages/CategoryProducts';
 
 function App() {
 // ... resto do código ...
@@ -22,7 +22,7 @@ function App() {
         <Route path="/criar-anuncio" element={<CreateListing />} />
         <Route path="/meus-anuncios" element={<MyListings />} />
         <Route path="/detalhes/:id" element={<ProductDetails />} />
-        <Route path="/meus-pedidos" element={<MyOrders />} />
+        <Route path="/categoria/:categoryId" element={<CategoryProducts />} />
       </Routes>
     </Router>
   );

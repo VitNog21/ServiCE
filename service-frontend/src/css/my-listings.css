@@ -24,6 +24,36 @@
   margin: 0;
 }
 
+/* Abas */
+.listings-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.tab-button {
+  padding: 12px 20px;
+  border: none;
+  background-color: transparent;
+  color: #64748b;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+
+.tab-button:hover {
+  color: #0A3B66;
+}
+
+.tab-button.active {
+  color: #0A3B66;
+  border-bottom-color: #0A847C;
+}
+
 .btn-create-new {
   background-color: #0A847C;
   color: white;
@@ -152,18 +182,26 @@
 
 .listing-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   border-top: 1px solid #f1f5f9;
-  padding-top: 15px;
+  padding: 16px 0 0 0;
+  margin-top: 16px;
 }
 
-.btn-edit-listing, .btn-delete-listing {
+.btn-edit-listing, .btn-delete-listing, .btn-complete-listing, .btn-revert-listing {
   flex: 1;
-  padding: 8px;
+  padding: 10px 8px;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  transition: all 0.2s;
+  min-height: 36px;
 }
 
 .btn-edit-listing {
@@ -183,4 +221,34 @@
 
 .btn-delete-listing:hover {
   background-color: #fef2f2;
+}
+
+.btn-complete-listing {
+  background-color: #d1fae5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.btn-complete-listing:hover:not(:disabled) {
+  background-color: #a7f3d0;
+}
+
+.btn-complete-listing:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-revert-listing {
+  background-color: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.btn-revert-listing:hover:not(:disabled) {
+  background-color: #fde68a;
+}
+
+.btn-revert-listing:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
