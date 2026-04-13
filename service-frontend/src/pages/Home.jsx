@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, MessageCircle } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [authLoading, setAuthLoading] = useState(true);
+  const [hasUnread, setHasUnread] = useState(false); 
   const navigate = useNavigate();
 
   const fetchUserAvatar = async (currentUser) => {
@@ -102,6 +103,7 @@ const Home = () => {
     return `A ${(distance / 1000).toFixed(distance >= 10000 ? 0 : 1)}km de você`;
   };
 
+  // 1. Inicialização e Autenticação
   useEffect(() => {
     let isMounted = true;
 
@@ -140,11 +142,10 @@ const Home = () => {
     };
   }, []);
 
-  // Buscar categorias que têm anúncios
+  // 2. Buscar Categorias
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // Buscar todas as categorias que têm anúncios ativos
         const { data, error } = await supabase
           .from('listings')
           .select('category:categories(id, name)', { count: 'exact' })
@@ -152,7 +153,6 @@ const Home = () => {
 
         if (error) throw error;
 
-        // Extrair categorias únicas
         const uniqueCategories = [];
         const categoryIds = new Set();
 
@@ -168,7 +168,6 @@ const Home = () => {
           });
         }
 
-        console.log('✅ Categorias carregadas:', uniqueCategories);
         setCategories(uniqueCategories);
       } catch (error) {
         console.error('❌ Erro ao buscar categorias:', error);
@@ -178,6 +177,7 @@ const Home = () => {
     fetchCategories();
   }, []);
 
+  // 3. Buscar Anúncios (Proximidade ou Fallback)
   useEffect(() => {
     let isMounted = true;
 
@@ -188,27 +188,22 @@ const Home = () => {
 
         try {
           const { lat, lon } = await getUserCoordinates();
-          console.log('📍 Coordenadas obtidas:', { lat, lon });
-
+          
           const { data, error: rpcError } = await supabase.rpc('buscar_anuncios_por_proximidade', {
             lat,
             lon,
           });
 
-          if (rpcError) {
-            throw rpcError;
-          }
+          if (rpcError) throw rpcError;
 
           if (isMounted) {
             setListings(Array.isArray(data) ? data : []);
           }
-          return; // Sucesso, sair
+          return;
         } catch (geoError) {
           console.warn('⚠️ RPC de proximidade falhou:', geoError.message);
         }
 
-        // Fallback: buscar todos os anúncios se a RPC falhar
-        console.log('🔄 Usando fallback - buscando todos os anúncios...');
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('listings')
           .select(`
@@ -225,13 +220,9 @@ const Home = () => {
           .order('created_at', { ascending: false })
           .limit(50);
 
-        if (fallbackError) {
-          console.error('❌ Erro no fallback:', fallbackError);
-          throw fallbackError;
-        }
+        if (fallbackError) throw fallbackError;
 
         if (isMounted) {
-          console.log('✅ Anúncios carregados:', fallbackData?.length || 0);
           setListings(Array.isArray(fallbackData) ? fallbackData : []);
         }
       } catch (fetchError) {
@@ -252,15 +243,65 @@ const Home = () => {
     };
   }, []);
 
+  // 4. Fechar Menu ao Clicar Fora
   useEffect(() => {
     const closeMenu = () => setShowDropdown(false);
-
     if (showDropdown) {
       window.addEventListener('click', closeMenu);
     }
-
     return () => window.removeEventListener('click', closeMenu);
   }, [showDropdown]);
+
+  // 5. Verificar Mensagens Não Lidas com SUPABASE REALTIME
+  useEffect(() => {
+    if (!user) {
+      setHasUnread(false);
+      return;
+    }
+
+    const checkUnreadMessages = async () => {
+      try {
+        // Busca APENAS mensagens enviadas PARA VOCÊ que estão marcadas como NÃO LIDAS
+        const { count, error } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('receiver_id', user.id)
+          .eq('is_read', false);
+
+        if (error) throw error;
+        setHasUnread(count > 0);
+      } catch (err) {
+        console.error('Erro ao verificar mensagens:', err);
+      }
+    };
+
+    // Executa a primeira checagem ao carregar a página
+    checkUnreadMessages();
+
+    // Fica escutando novas mensagens em segundo plano na Home!
+    const channel = supabase
+      .channel('home-unread-alerts')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
+        () => {
+          setHasUnread(true); // Acende a bolinha instantaneamente ao receber
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
+        () => {
+          // Re-checa se todas foram lidas
+          checkUnreadMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const toggleDropdown = (e) => {
     e.stopPropagation();
@@ -289,13 +330,14 @@ const Home = () => {
   }, [listings, searchTerm]);
 
   return (
-    <div className="home-container">
+    <div className="home-container relative min-h-screen">
       <header className="main-header">
         <img
           src="/assets/logo_service.png"
           alt="ServiCE"
           className="header-logo"
           onClick={() => navigate('/')}
+          style={{ cursor: 'pointer' }}
         />
 
         <form className="header-search m-0 border-0 bg-transparent" onSubmit={(e) => e.preventDefault()}>
@@ -466,7 +508,6 @@ const Home = () => {
                           📷
                         </div>
                       )}
-                      {/* Overlay no hover */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
 
@@ -502,6 +543,27 @@ const Home = () => {
           )}
         </section>
       </main>
+
+      {/* =========================================
+          BOTÃO FLUTUANTE DO CHAT (POP-UP)
+          ========================================= */}
+      {user && (
+        <button
+          onClick={() => navigate('/chat')}
+          className="fixed bottom-8 right-8 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-[#0A847C] text-white shadow-xl transition-all duration-300 hover:scale-110 hover:bg-[#085a51] hover:shadow-2xl focus:outline-none"
+          title="Abrir Chat"
+        >
+          <MessageCircle size={32} />
+          
+          {/* Indicador de Mensagem Não Lida (Bolinha Vermelha animada) */}
+          {hasUnread && (
+            <>
+              <span className="absolute top-0 right-0 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 ring-2 ring-white" />
+              <span className="absolute top-0 right-0 h-4 w-4 animate-ping rounded-full bg-red-400 opacity-75" />
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 };

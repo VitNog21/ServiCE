@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { ShoppingCart, ArrowLeft, ShieldCheck, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, ShieldCheck, MapPin, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function ProductDetails() {
@@ -11,7 +11,29 @@ export default function ProductDetails() {
   const [loading, setLoading] = useState(true);
   const [comprando, setComprando] = useState(false);
   const [fotoAtual, setFotoAtual] = useState(0);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [ownerInfo, setOwnerInfo] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
+  // Carregar usuário autenticado
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setCurrentUser(session.user);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar usuário:', err);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
+  // Carregar anúncio e info do dono
   useEffect(() => {
     async function fetchProduto() {
       try {
@@ -44,6 +66,18 @@ export default function ProductDetails() {
         } else if (data) {
           console.log('✅ Dados carregados com sucesso:', data);
           setProduto(data);
+          
+          // Buscar info do dono
+          if (data.owner_id) {
+            const { data: ownerData } = await supabase
+              .from('profiles')
+              .select('id, full_name, avatar_url')
+              .eq('id', data.owner_id)
+              .single();
+            if (ownerData) {
+              setOwnerInfo(ownerData);
+            }
+          }
         }
       } catch (err) {
         console.error('❌ Erro na exceção:', err);
@@ -54,6 +88,19 @@ export default function ProductDetails() {
     }
     fetchProduto();
   }, [id]);
+
+  // Iniciar chat com o dono
+  const handleStartChat = () => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    if (currentUser.id === produto.owner_id) {
+      alert('Você não pode conversar com você mesmo!');
+      return;
+    }
+    navigate(`/chat/${produto.id}/${produto.owner_id}`);
+  };
 
   const handleCompra = async () => {
     setComprando(true);
@@ -289,7 +336,7 @@ export default function ProductDetails() {
               </div>
             </div>
 
-            {/* Botão de Compra */}
+            {/* Botões de Ação */}
             <div className="space-y-3">
               <Button 
                 onClick={handleCompra} 
@@ -299,6 +346,16 @@ export default function ProductDetails() {
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 {comprando ? 'Processando...' : 'Comprar Agora'}
               </Button>
+              
+              <Button 
+                onClick={handleStartChat}
+                disabled={authLoading || currentUser?.id === produto?.owner_id}
+                className="w-full h-12 text-base font-medium bg-[#0A847C] hover:bg-[#085a51] text-white transition-all rounded-xl"
+              >
+                <MessageCircle className="mr-2 h-5 w-5" />
+                {currentUser?.id === produto?.owner_id ? 'É seu anúncio' : 'Iniciar Chat'}
+              </Button>
+              
               <Button 
                 variant="outline"
                 onClick={() => navigate(-1)}

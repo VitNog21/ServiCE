@@ -9,6 +9,7 @@ import CreateListing from './pages/CreateListing';
 import MyListings from './pages/MyListings';
 import ProductDetails from './pages/ProductDetails';
 import CategoryProducts from './pages/CategoryProducts';
+import Chat from './pages/Chat';
 
 function App() {
 // ... resto do código ...
@@ -23,6 +24,8 @@ function App() {
         <Route path="/meus-anuncios" element={<MyListings />} />
         <Route path="/detalhes/:id" element={<ProductDetails />} />
         <Route path="/categoria/:categoryId" element={<CategoryProducts />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/chat/:listingId/:receiverId" element={<Chat />} />
       </Routes>
     </Router>
   );
