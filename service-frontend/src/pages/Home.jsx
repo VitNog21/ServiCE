@@ -324,7 +324,7 @@ const Home = () => {
     }
 
     return listings.filter((listing) => {
-      const title = (listing.title || '').toLowerCase();
+      const title = (listing.titulo || listing.title || '').toLowerCase();
       return title.includes(query);
     });
   }, [listings, searchTerm]);
@@ -468,17 +468,12 @@ const Home = () => {
               {filteredListings.map((listing) => {
                 const imageUrl = Array.isArray(listing.image_urls) && listing.image_urls.length > 0
                   ? listing.image_urls[0]
-                  : null;
-                const title = listing.title || 'Anúncio sem título';
-                const priceValue = listing.price ?? 0;
-                const distanceMeters = listing.distance_meters;
-                const categoryName = listing.category?.name || 'Serviço';
-
-                const distanceLabel = Number.isFinite(Number(distanceMeters))
-                  ? Number(distanceMeters) < 1000
-                    ? `A ${Math.round(Number(distanceMeters))}m de você`
-                    : `A ${(Number(distanceMeters) / 1000).toFixed(Number(distanceMeters) >= 10000 ? 0 : 1)}km de você`
-                  : 'Distância indisponível';
+                  : listing.imagem_url || null;
+                const title = listing.titulo || listing.title || 'Anúncio sem título';
+                const priceValue = listing.preco ?? listing.price ?? 0;
+                const distanceMeters = listing.distancia_metros ?? listing.distance_meters;
+                const categoryName = listing.category?.name || listing.categoria_nome || 'Serviço';
+                const distanceLabel = formatDistance(distanceMeters);
 
                 return (
                   <Link
