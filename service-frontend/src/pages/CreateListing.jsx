@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,14 @@ import '../css/create-listing.css';
 
 const CreateListing = () => {
   const navigate = useNavigate();
+  const { listingId } = useParams();
   const [user, setUser] = useState(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [editListing, setEditListing] = useState(null);
+  const isEditMode = Boolean(listingId);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -66,14 +70,50 @@ const CreateListing = () => {
         if (catsError) throw catsError;
         if (cats) setCategories(cats);
 
+        if (listingId) {
+          const { data: listingData, error: listingError } = await supabase
+            .from('listings')
+            .select(`
+              id,
+              title,
+              description,
+              price,
+              image_urls,
+              category_id,
+              address_text,
+              owner_id
+            `)
+            .eq('id', listingId)
+            .single();
+
+          if (listingError) throw listingError;
+
+          if (!listingData || listingData.owner_id !== currentUser.id) {
+            setMessage({ type: 'error', text: 'Você não tem permissão para editar este anúncio.' });
+            navigate('/meus-anuncios');
+            return;
+          }
+
+          setEditListing(listingData);
+          setFormData({
+            title: listingData.title || '',
+            description: listingData.description || '',
+            price: listingData.price?.toString() || '',
+            category_id: listingData.category_id?.toString() || '',
+            address_text: listingData.address_text || '',
+          });
+        }
+
       } catch (error) {
         console.error("Erro na inicialização:", error);
         setMessage({ type: 'error', text: 'Erro ao carregar dados necessários.' });
+      } finally {
+        setInitializing(false);
       }
     };
 
     checkAuthAndFetchData();
-  }, [navigate]);
+  }, [listingId, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -115,7 +155,11 @@ const CreateListing = () => {
       return;
     }
 
-    if (!formData.address_text || selectedCoordinates.lat === null || selectedCoordinates.lon === null) {
+      const addressChanged = isEditMode && editListing
+        ? formData.address_text.trim() !== (editListing.address_text || '').trim()
+        : false;
+
+      if ((!isEditMode || addressChanged) && (!formData.address_text || selectedCoordinates.lat === null || selectedCoordinates.lon === null)) {
       setMessage({ type: 'error', text: 'Selecione um endereço válido na lista de sugestões.' });
       setLoading(false);
       return;
@@ -142,32 +186,59 @@ const CreateListing = () => {
         uploadedUrls.push(urlData.publicUrl);
       }
 
-      // Passo B: Inserção no Banco de Dados
-      // NOTA: Estamos a usar a RPC 'create_listing_safely' que definimos no SQL 
-      // para resolver a exigência do PostGIS (coluna location NOT NULL).
-      const { error: rpcError } = await supabase.rpc('create_listing_safely', {
-        p_owner_id: user.id,
-        p_category_id: parseInt(formData.category_id),
-        p_title: formData.title,
-        p_description: formData.description,
-        p_price: parseFloat(formData.price),
-        p_address_text: formData.address_text,
-        p_image_urls: uploadedUrls,
-        p_lat: selectedCoordinates.lat,
-        p_lng: selectedCoordinates.lon
-      });
+      if (isEditMode) {
+        const payload = {
+          title: formData.title,
+          description: formData.description,
+          price: parseFloat(formData.price),
+          category_id: parseInt(formData.category_id),
+          address_text: formData.address_text,
+        };
 
-      if (rpcError) throw rpcError;
+        if (uploadedUrls.length > 0) {
+          payload.image_urls = uploadedUrls;
+        } else if (editListing?.image_urls?.length) {
+          payload.image_urls = editListing.image_urls;
+        }
 
-      // Sucesso!
-      setMessage({ type: 'success', text: 'Anúncio publicado com sucesso!' });
-      
-      // Limpa o formulário e redireciona após 1.5 segundos
-      setTimeout(() => navigate('/meus-anuncios'), 1500);
+        const { error: updateError } = await supabase
+          .from('listings')
+          .update(payload)
+          .eq('id', listingId)
+          .eq('owner_id', user.id);
+
+        if (updateError) throw updateError;
+
+        setMessage({ type: 'success', text: 'Anúncio atualizado com sucesso!' });
+        setTimeout(() => navigate('/meus-anuncios'), 1500);
+      } else {
+        // Passo B: Inserção no Banco de Dados
+        // NOTA: Estamos a usar a RPC 'create_listing_safely' que definimos no SQL 
+        // para resolver a exigência do PostGIS (coluna location NOT NULL).
+        const { error: rpcError } = await supabase.rpc('create_listing_safely', {
+          p_owner_id: user.id,
+          p_category_id: parseInt(formData.category_id),
+          p_title: formData.title,
+          p_description: formData.description,
+          p_price: parseFloat(formData.price),
+          p_address_text: formData.address_text,
+          p_image_urls: uploadedUrls,
+          p_lat: selectedCoordinates.lat,
+          p_lng: selectedCoordinates.lon
+        });
+
+        if (rpcError) throw rpcError;
+
+        // Sucesso!
+        setMessage({ type: 'success', text: 'Anúncio publicado com sucesso!' });
+        
+        // Limpa o formulário e redireciona após 1.5 segundos
+        setTimeout(() => navigate('/meus-anuncios'), 1500);
+      }
 
     } catch (error) {
       console.error('Falha ao criar anúncio:', error);
-      setMessage({ type: 'error', text: error.message || 'Erro ao publicar o anúncio. Verifique se configurou o banco.' });
+        setMessage({ type: 'error', text: error.message || (isEditMode ? 'Erro ao atualizar o anúncio.' : 'Erro ao publicar o anúncio. Verifique se configurou o banco.') });
     } finally {
       setLoading(false);
     }
@@ -175,7 +246,7 @@ const CreateListing = () => {
 
   // Previne renderização do formulário se o utilizador ainda estiver a ser validado
   if (!user) return null;
-
+  if (!user || initializing) return null;
   return (
     <div className="create-listing-container">
       <div className="form-card">
@@ -189,7 +260,7 @@ const CreateListing = () => {
           Voltar
         </Button>
 
-        <h2>Criar Novo Anúncio</h2>
+        <h2>{isEditMode ? 'Editar Anúncio' : 'Criar Novo Anúncio'}</h2>
         
         {message.text && (
           <div className={`alert ${message.type}`}>
@@ -295,7 +366,7 @@ const CreateListing = () => {
           {/* BOTÕES */}
           <div className="button-group">
             <Button type="submit" className="btn-save" disabled={loading}>
-              {loading ? 'A processar...' : 'Publicar Anúncio'}
+              {loading ? 'A processar...' : isEditMode ? 'Atualizar Anúncio' : 'Publicar Anúncio'}
             </Button>
             <Button type="button" variant="outline" className="btn-cancel" onClick={() => navigate('/meus-anuncios')} disabled={loading}>
               Cancelar

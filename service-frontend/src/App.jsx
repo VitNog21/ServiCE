@@ -21,6 +21,7 @@ function App() {
         <Route path="/cadastro" element={<Cadastro />} />
         <Route path="/perfil" element={<EditProfile />} />
         <Route path="/criar-anuncio" element={<CreateListing />} />
+        <Route path="/editar-anuncio/:listingId" element={<CreateListing />} />
         <Route path="/meus-anuncios" element={<MyListings />} />
         <Route path="/detalhes/:id" element={<ProductDetails />} />
         <Route path="/categoria/:categoryId" element={<CategoryProducts />} />

@@ -103,7 +103,7 @@
 .listing-card {
   background: white;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 4px 15px rgba(0,0,0,0.05);
   border: 1px solid #f1f5f9;
   transition: transform 0.2s;
@@ -113,11 +113,27 @@
   transform: translateY(-4px);
 }
 
+.listing-hero {
+  all: unset;
+  display: block;
+  width: 100%;
+  cursor: pointer;
+}
+
+.listing-hero:focus-visible {
+  outline: 2px solid #0a847c;
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
 .listing-image-wrapper {
   position: relative;
   height: 200px;
   width: 100%;
   background-color: #f8fafc;
+  overflow: hidden;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 
 .listing-image {
@@ -137,6 +153,22 @@
   background-color: #e2e8f0;
 }
 
+.listing-preview {
+  padding: 18px 20px 6px;
+}
+
+.listing-preview .listing-category {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.listing-preview .listing-item-title {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .status-badge {
   position: absolute;
   top: 12px;
@@ -151,9 +183,10 @@
 .status-active { background-color: #10b981; }
 .status-sold { background-color: #f59e0b; }
 .status-hidden { background-color: #64748b; }
+.status-paused { background-color: #64748b; }
 
 .listing-info {
-  padding: 20px;
+  padding: 0 20px 20px;
 }
 
 .listing-category {
@@ -186,6 +219,8 @@
   border-top: 1px solid #f1f5f9;
   padding: 16px 0 0 0;
   margin-top: 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-edit-listing, .btn-delete-listing, .btn-complete-listing, .btn-revert-listing {
