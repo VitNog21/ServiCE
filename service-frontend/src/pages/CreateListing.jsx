@@ -337,6 +337,7 @@ const CreateListing = () => {
               onChange={handleAddressInputChange}
               onAddressSelect={handleAddressSelect}
               disabled={loading}
+              required
             />
           </div>
 

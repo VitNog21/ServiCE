@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 import '../css/profile.css';
 
 const EditProfile = () => {
@@ -22,6 +23,8 @@ const EditProfile = () => {
     location: '',
     gender: ''
   });
+
+  const [selectedCoordinates, setSelectedCoordinates] = useState({ lat: null, lon: null });
 
   const [previewUrl, setPreviewUrl] = useState('');
   const [loadingUser, setLoadingUser] = useState(true);
@@ -82,6 +85,10 @@ const EditProfile = () => {
             location: profileData.location || '',
             gender: profileData.gender || ''
           });
+          setSelectedCoordinates({
+            lat: profileData.lat ?? null,
+            lon: profileData.lon ?? null
+          });
           setPreviewUrl(profileData.avatar_url || currentUser.user_metadata?.avatar_url || '');
         } else {
           // Perfil novo: puxa o nome e foto do metadado do cadastro original
@@ -93,6 +100,7 @@ const EditProfile = () => {
             location: '',
             gender: ''
           });
+          setSelectedCoordinates({ lat: null, lon: null });
           setPreviewUrl(initialAvatar);
         }
 
@@ -111,6 +119,16 @@ const EditProfile = () => {
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleLocationInputChange = (addressText) => {
+    setFormData(prev => ({ ...prev, location: addressText }));
+    setSelectedCoordinates({ lat: null, lon: null });
+  };
+
+  const handleLocationSelect = ({ display_name, lat, lon }) => {
+    setFormData(prev => ({ ...prev, location: display_name }));
+    setSelectedCoordinates({ lat, lon });
   };
 
   // Handle upload de imagem
@@ -158,16 +176,18 @@ const EditProfile = () => {
       setMessage({ type: '', text: '' });
 
       const dataToSave = {
-        id: user.id,
         full_name: formData.full_name,
         location: formData.location,
+        lat: selectedCoordinates.lat,
+        lon: selectedCoordinates.lon,
         gender: formData.gender,
         avatar_url: previewUrl || null
       };
 
       const { error } = await supabase
         .from('profiles')
-        .upsert(dataToSave, { onConflict: 'id' });
+        .update(dataToSave)
+        .eq('id', user.id);
 
       if (error) throw error;
 
@@ -265,10 +285,11 @@ const EditProfile = () => {
             </div>
             <div className="input-group">
               <label htmlFor="location">Localidade</label>
-              <input 
-                type="text" id="location" name="location"
-                value={formData.location} onChange={handleFormChange}
-                placeholder="Ex: Lisboa, Portugal"
+              <AddressAutocomplete
+                value={formData.location}
+                onChange={handleLocationInputChange}
+                onAddressSelect={handleLocationSelect}
+                disabled={savingProfile}
               />
             </div>
             <div className="input-group">

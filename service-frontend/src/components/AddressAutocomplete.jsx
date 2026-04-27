@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 500;
 
-function AddressAutocomplete({ value, onChange, onAddressSelect, disabled = false }) {
+function AddressAutocomplete({ value, onChange, onAddressSelect, disabled = false, required = false }) {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -103,7 +103,7 @@ function AddressAutocomplete({ value, onChange, onAddressSelect, disabled = fals
         placeholder="Digite rua, bairro ou cidade"
         autoComplete="off"
         disabled={disabled}
-        required
+        required={required}
       />
 
       {isOpen && (

@@ -23,7 +23,7 @@ const Home = () => {
   const [error, setError] = useState('');
   const [authLoading, setAuthLoading] = useState(true);
   const [hasUnread, setHasUnread] = useState(false); 
-  const [isUsingIpFallback, setIsUsingIpFallback] = useState(false);
+  const [locationSource, setLocationSource] = useState(null);
   const navigate = useNavigate();
 
   const fetchUserAvatar = async (currentUser) => {
@@ -84,15 +84,53 @@ const Home = () => {
     return { lat, lon };
   };
 
+  const getProfileCoordinates = async (currentUser) => {
+    if (!currentUser?.id) {
+      return null;
+    }
+
+    try {
+      const { data, error: profileError } = await supabase
+        .from('profiles')
+        .select('lat, lon')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw profileError;
+      }
+
+      const lat = Number(data?.lat);
+      const lon = Number(data?.lon);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return null;
+      }
+
+      return { lat, lon };
+    } catch (profileError) {
+      console.warn('Erro ao obter coordenadas do perfil:', profileError);
+      return null;
+    }
+  };
+
   const getUserCoordinates = async () => {
+    setLocationSource(null);
+
+    const profileCoords = await getProfileCoordinates(user);
+    if (profileCoords) {
+      setLocationSource('profile');
+      return profileCoords;
+    }
+
     try {
       const coords = await getBrowserCoordinates();
-      setIsUsingIpFallback(false);
+      setLocationSource('gps');
       return coords;
     } catch (browserError) {
       console.warn('Fallback para IP:', browserError);
       const ipCoords = await getIpCoordinates();
-      setIsUsingIpFallback(true);
+      setLocationSource('ip');
       return ipCoords;
     }
   };
@@ -187,6 +225,10 @@ const Home = () => {
 
   // 3. Buscar Anúncios (Proximidade ou Fallback)
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     let isMounted = true;
 
     const fetchNearbyListings = async () => {
@@ -249,7 +291,7 @@ const Home = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [authLoading, user]);
 
   // 4. Fechar Menu ao Clicar Fora
   useEffect(() => {
@@ -523,9 +565,9 @@ const Home = () => {
                         <div className="flex items-center gap-2 text-xs text-slate-600">
                           <span className="inline-block">📍</span>
                           <p className="truncate">{distanceLabel}</p>
-                          {isUsingIpFallback && (
+                          {locationSource === 'ip' && (
                             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                              Localização Aproximada
+                              📍 Distância não exata (Baseada em IP)
                             </span>
                           )}
                         </div>
