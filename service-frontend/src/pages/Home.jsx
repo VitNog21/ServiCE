@@ -246,6 +246,8 @@ const Home = () => {
 
           if (rpcError) throw rpcError;
 
+          console.log('Primeiro anúncio da RPC:', Array.isArray(data) ? data[0] : data);
+
           if (isMounted) {
             setListings(Array.isArray(data) ? data : []);
           }
