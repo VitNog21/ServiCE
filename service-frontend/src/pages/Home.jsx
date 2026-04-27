@@ -23,6 +23,7 @@ const Home = () => {
   const [error, setError] = useState('');
   const [authLoading, setAuthLoading] = useState(true);
   const [hasUnread, setHasUnread] = useState(false); 
+  const [isUsingIpFallback, setIsUsingIpFallback] = useState(false);
   const navigate = useNavigate();
 
   const fetchUserAvatar = async (currentUser) => {
@@ -51,10 +52,12 @@ const Home = () => {
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          resolve({
+          const coords = {
             lat: position.coords.latitude,
             lon: position.coords.longitude,
-          });
+          };
+          console.log('[geo] navegador ok', coords);
+          resolve(coords);
         },
         reject,
         GEO_OPTIONS
@@ -77,15 +80,20 @@ const Home = () => {
       throw new Error('Coordenadas por IP inválidas.');
     }
 
+    console.log('[geo] ip ok', { lat, lon });
     return { lat, lon };
   };
 
   const getUserCoordinates = async () => {
     try {
-      return await getBrowserCoordinates();
+      const coords = await getBrowserCoordinates();
+      setIsUsingIpFallback(false);
+      return coords;
     } catch (browserError) {
       console.warn('Fallback para IP:', browserError);
-      return getIpCoordinates();
+      const ipCoords = await getIpCoordinates();
+      setIsUsingIpFallback(true);
+      return ipCoords;
     }
   };
 
@@ -472,7 +480,7 @@ const Home = () => {
                 const title = listing.titulo || listing.title || 'Anúncio sem título';
                 const priceValue = listing.preco ?? listing.price ?? 0;
                 const distanceMeters = listing.distancia_metros ?? listing.distance_meters;
-                const categoryName = listing.category?.name || listing.categoria_nome || 'Serviço';
+                const categoryName = listing.category?.name || listing.category_name || listing.categoria_nome || 'Serviço';
                 const distanceLabel = formatDistance(distanceMeters);
 
                 return (
@@ -512,9 +520,14 @@ const Home = () => {
                         <h3 className="line-clamp-2 text-base font-semibold text-slate-900 transition-colors duration-200 group-hover:text-[#0A847C] min-h-[2.5rem]">
                           {title}
                         </h3>
-                        <div className="flex items-center gap-1 text-xs text-slate-600">
+                        <div className="flex items-center gap-2 text-xs text-slate-600">
                           <span className="inline-block">📍</span>
                           <p className="truncate">{distanceLabel}</p>
+                          {isUsingIpFallback && (
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                              Localização Aproximada
+                            </span>
+                          )}
                         </div>
                       </div>
 
