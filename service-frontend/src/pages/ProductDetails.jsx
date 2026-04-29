@@ -129,14 +129,14 @@ export default function ProductDetails() {
     }
 
     const { data, error } = await supabase
-      .from('pedidos')
+      .from('orders')
       .insert([
         {
-          anuncio_id: produto.id,
-          comprador_id: currentUser.id,
-          vendedor_id: produto.owner_id,
-          valor_total: produto.price,
-          status: 'pendente'
+          listing_id: produto.id,
+          buyer_id: currentUser.id,
+          seller_id: produto.owner_id,
+          total_price: produto.price,
+          status: 'pending'
         }
       ])
       .select();
@@ -144,8 +144,8 @@ export default function ProductDetails() {
     if (error) {
       alert("Erro ao processar pedido: " + error.message);
     } else {
-      alert("✅ Pedido realizado! Agora você será redirecionado para o seus anúncios.");
-      navigate(`/meus-anuncios`); 
+      const newOrder = data[0];
+      navigate(`/checkout/${newOrder.id}`); 
     }
     setComprando(false);
   };

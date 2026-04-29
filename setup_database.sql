@@ -1,94 +1,41 @@
 -- ==========================================
--- SCRIPT DE CONFIGURAÇÃO DO BANCO DE DADOS (ServiCE)
+-- SCRIPT DE ADIÇÃO DA CAMADA DE PEDIDOS (Orders)
+-- Este script é seguro e não altera as tabelas existentes.
 -- Copie este código e cole no SQL Editor do Supabase
 -- ==========================================
 
--- 0. Habilitar a extensão para UUIDs
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- 1. TABELA DE PERFIS (Extensão do auth.users)
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-  full_name TEXT,
-  avatar_url TEXT,
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 2. TABELA DE CATEGORIAS
-CREATE TABLE IF NOT EXISTS public.categorias (
+-- 1. Criar a tabela de Pedidos (Orders) se ela não existir
+CREATE TABLE IF NOT EXISTS public.orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  nome TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  icone TEXT,
-  data_criacao TIMESTAMPTZ DEFAULT now()
+  listing_id UUID REFERENCES public.listings(id) ON DELETE SET NULL,
+  buyer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  seller_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  total_price DECIMAL(10,2) NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'completed', 'cancelled')),
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. TABELA DE ANÚNCIOS
-CREATE TABLE IF NOT EXISTS public.anuncios (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  usuario_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  categoria_id UUID REFERENCES public.categorias(id) ON DELETE SET NULL,
-  titulo TEXT NOT NULL,
-  descricao TEXT,
-  preco DECIMAL(10,2) NOT NULL,
-  imagem_url TEXT,
-  localizacao TEXT DEFAULT 'Brasil',
-  data_criacao TIMESTAMPTZ DEFAULT now()
-);
+-- 2. Ativar Segurança (RLS) apenas para a nova tabela
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
--- 4. TABELA DE PEDIDOS (Operação de Venda)
-CREATE TABLE IF NOT EXISTS public.pedidos (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  anuncio_id UUID REFERENCES public.anuncios(id) ON DELETE SET NULL,
-  comprador_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  vendedor_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  valor_total DECIMAL(10,2) NOT NULL,
-  status TEXT DEFAULT 'pendente' CHECK (status IN ('pendente', 'pago', 'concluido', 'cancelado')),
-  data_criacao TIMESTAMPTZ DEFAULT now()
-);
-
--- ==========================================
--- CONFIGURAÇÃO DE SEGURANÇA (RLS)
--- ==========================================
-
--- Ativar RLS em todas as tabelas
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.anuncios ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY;
-
--- POLÍTICAS PARA PERFIS
-CREATE POLICY "Qualquer um pode ver perfis" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Usuários podem atualizar o próprio perfil" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
--- POLÍTICAS PARA CATEGORIAS
-CREATE POLICY "Qualquer um pode ver categorias" ON public.categorias FOR SELECT USING (true);
-
--- POLÍTICAS PARA ANÚNCIOS
-CREATE POLICY "Qualquer um pode ver anúncios" ON public.anuncios FOR SELECT USING (true);
-CREATE POLICY "Usuários logados podem criar anúncios" ON public.anuncios FOR INSERT WITH CHECK (auth.uid() = usuario_id);
-CREATE POLICY "Dono pode editar seu anúncio" ON public.anuncios FOR UPDATE USING (auth.uid() = usuario_id);
-CREATE POLICY "Dono pode deletar seu anúncio" ON public.anuncios FOR DELETE USING (auth.uid() = usuario_id);
-
--- POLÍTICAS PARA PEDIDOS
-CREATE POLICY "Usuários podem ver pedidos onde são comprador ou vendedor" 
-ON public.pedidos FOR SELECT USING (auth.uid() = comprador_id OR auth.uid() = vendedor_id);
-
-CREATE POLICY "Apenas compradores podem criar pedidos" 
-ON public.pedidos FOR INSERT WITH CHECK (auth.uid() = comprador_id);
-
--- ==========================================
--- TRIGGER PARA CRIAR PERFIL AUTOMÁTICO NO CADASTRO
--- ==========================================
-CREATE OR REPLACE FUNCTION public.handle_new_user() 
-RETURNS trigger AS $$
+-- 3. Criar Políticas de Segurança para a tabela orders (idempotente)
+DO $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, avatar_url)
-  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
-  RETURN new;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'orders' AND policyname = 'Users can see their own orders') THEN
+        CREATE POLICY "Users can see their own orders" 
+        ON public.orders FOR SELECT 
+        USING (auth.uid() = buyer_id OR auth.uid() = seller_id);
+    END IF;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'orders' AND policyname = 'Users can create orders as buyers') THEN
+        CREATE POLICY "Users can create orders as buyers" 
+        ON public.orders FOR INSERT 
+        WITH CHECK (auth.uid() = buyer_id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'orders' AND policyname = 'Users can update order status') THEN
+        CREATE POLICY "Users can update order status" 
+        ON public.orders FOR UPDATE 
+        USING (auth.uid() = buyer_id OR auth.uid() = seller_id);
+    END IF;
+END $$;

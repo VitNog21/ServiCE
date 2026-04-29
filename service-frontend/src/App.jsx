@@ -12,6 +12,9 @@ import CategoryProducts from './pages/CategoryProducts';
 import Chat from './pages/Chat';
 import DashboardAdmin from './pages/DashboardAdmin';
 import CompletarLocalizacao from './pages/CompletarLocalizacao';
+import Checkout from './pages/Checkout';
+import Success from './pages/Success';
+import Failure from './pages/Failure';
 
 function App() {
   return (
@@ -30,6 +33,9 @@ function App() {
         <Route path="/chat/:listingId/:receiverId" element={<Chat />} />
         <Route path="/admin" element={<DashboardAdmin />} />
         <Route path="/completar-localizacao" element={<CompletarLocalizacao />} />
+        <Route path="/checkout/:orderId" element={<Checkout />} />
+        <Route path="/success" element={<Success />} />
+        <Route path="/failure" element={<Failure />} />
       </Routes>
     </Router>
   );
