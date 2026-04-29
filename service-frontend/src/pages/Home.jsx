@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MessageCircle } from 'lucide-react';
+import { Search, MessageCircle, Shield } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ const GEO_OPTIONS = {
 const Home = () => {
   const [user, setUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [listings, setListings] = useState([]);
@@ -26,21 +27,36 @@ const Home = () => {
   const [locationSource, setLocationSource] = useState(null);
   const navigate = useNavigate();
 
+  // ==========================================
+  // BUSCA PERFIL E ARMADILHA DE LOCALIZAÇÃO
+  // ==========================================
   const fetchUserAvatar = async (currentUser) => {
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
-        .select('avatar_url')
+        .select('avatar_url, role, lat, lon')
         .eq('id', currentUser.id)
         .single();
 
-      if (profile?.avatar_url) {
-        setAvatarUrl(profile.avatar_url);
+      if (profile) {
+        // Se a latitude ou longitude estiverem vazias, bloqueia a Home e manda pro Pedágio!
+        if (!profile.lat || !profile.lon) {
+          navigate('/completar-localizacao');
+          return; // Para a execução da Home aqui
+        }
+
+        if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
+        if (profile.role) setUserRole(profile.role);
+      } else if (error && error.code === 'PGRST116') {
+        // Se o perfil ainda não existir (PGRST116 = linha não encontrada),
+        // o que pode acontecer no exato milissegundo pós-cadastro do Google:
+        navigate('/completar-localizacao');
+        return;
       } else if (currentUser.user_metadata?.avatar_url) {
         setAvatarUrl(currentUser.user_metadata.avatar_url);
       }
     } catch (fetchError) {
-      console.error('Erro ao buscar avatar:', fetchError);
+      console.error('Erro ao buscar perfil:', fetchError);
     }
   };
 
@@ -179,6 +195,7 @@ const Home = () => {
       } else {
         setUser(null);
         setAvatarUrl(null);
+        setUserRole(null);
       }
     });
 
@@ -246,8 +263,6 @@ const Home = () => {
 
           if (rpcError) throw rpcError;
 
-          console.log('Primeiro anúncio da RPC:', Array.isArray(data) ? data[0] : data);
-
           if (isMounted) {
             setListings(Array.isArray(data) ? data : []);
           }
@@ -313,7 +328,6 @@ const Home = () => {
 
     const checkUnreadMessages = async () => {
       try {
-        // Busca APENAS mensagens enviadas PARA VOCÊ que estão marcadas como NÃO LIDAS
         const { count, error } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
@@ -327,24 +341,21 @@ const Home = () => {
       }
     };
 
-    // Executa a primeira checagem ao carregar a página
     checkUnreadMessages();
 
-    // Fica escutando novas mensagens em segundo plano na Home!
     const channel = supabase
       .channel('home-unread-alerts')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
         () => {
-          setHasUnread(true); // Acende a bolinha instantaneamente ao receber
+          setHasUnread(true); 
         }
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
         () => {
-          // Re-checa se todas foram lidas
           checkUnreadMessages();
         }
       )
@@ -364,6 +375,7 @@ const Home = () => {
     await supabase.auth.signOut();
     setUser(null);
     setAvatarUrl(null);
+    setUserRole(null);
     setShowDropdown(false);
     navigate('/');
   };
@@ -415,7 +427,18 @@ const Home = () => {
           {authLoading ? (
             <div className="loader-placeholder">A carregar...</div>
           ) : user ? (
-            <div className="user-menu">
+            <div className="user-menu flex items-center gap-4">
+              
+              {userRole === 'admin' && (
+                <Link 
+                  to="/admin" 
+                  className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-slate-800 shadow-sm"
+                >
+                  <Shield size={16} />
+                  <span>Painel Admin</span>
+                </Link>
+              )}
+
               <Link to="/meus-anuncios" className="btn-my-ads">Meus Anúncios</Link>
 
               <div className="user-profile-icon" onClick={toggleDropdown} style={{ cursor: 'pointer', position: 'relative' }}>
@@ -433,6 +456,9 @@ const Home = () => {
                   <div className="dropdown-menu active" onClick={(e) => e.stopPropagation()}>
                     <div className="dropdown-header">
                       <span className="user-email-text">{user.email}</span>
+                      {userRole === 'admin' && (
+                        <span className="mt-1 inline-block rounded bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 uppercase">Admin</span>
+                      )}
                     </div>
                     <hr />
                     <Link to="/perfil" className="dropdown-item">Meu Perfil</Link>
@@ -534,14 +560,12 @@ const Home = () => {
                     className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl h-full"
                     style={{ textDecoration: 'none', color: 'inherit' }}
                   >
-                    {/* Badge de Categoria */}
                     <div className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 rounded-lg bg-white/95 px-3 py-1.5 backdrop-blur-sm shadow-md">
                       <span className="text-xs font-semibold text-[#0A847C] uppercase tracking-wide">
                         {categoryName.slice(0, 12)}
                       </span>
                     </div>
 
-                    {/* Container de imagem com overlay */}
                     <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden flex-shrink-0">
                       {imageUrl ? (
                         <img
@@ -558,7 +582,6 @@ const Home = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
 
-                    {/* Conteúdo */}
                     <div className="flex flex-col flex-grow space-y-3 p-5">
                       <div className="space-y-2 flex-grow">
                         <h3 className="line-clamp-2 text-base font-semibold text-slate-900 transition-colors duration-200 group-hover:text-[#0A847C] min-h-[2.5rem]">
@@ -575,7 +598,6 @@ const Home = () => {
                         </div>
                       </div>
 
-                      {/* Preço e CTA */}
                       <div className="mt-auto flex items-end justify-between gap-3 pt-4 border-t border-slate-100">
                         <div className="flex-1">
                           <p className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1.5">Preço</p>
@@ -596,9 +618,6 @@ const Home = () => {
         </section>
       </main>
 
-      {/* =========================================
-          BOTÃO FLUTUANTE DO CHAT (POP-UP)
-          ========================================= */}
       {user && (
         <button
           onClick={() => navigate('/chat')}
@@ -607,7 +626,6 @@ const Home = () => {
         >
           <MessageCircle size={32} />
           
-          {/* Indicador de Mensagem Não Lida (Bolinha Vermelha animada) */}
           {hasUnread && (
             <>
               <span className="absolute top-0 right-0 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 ring-2 ring-white" />
