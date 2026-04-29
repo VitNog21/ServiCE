@@ -10,6 +10,8 @@ import MyListings from './pages/MyListings';
 import ProductDetails from './pages/ProductDetails';
 import CategoryProducts from './pages/CategoryProducts';
 import Chat from './pages/Chat';
+import DashboardAdmin from './pages/DashboardAdmin';
+import CompletarLocalizacao from './pages/CompletarLocalizacao';
 
 function App() {
 // ... resto do código ...
@@ -27,6 +29,8 @@ function App() {
         <Route path="/categoria/:categoryId" element={<CategoryProducts />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/chat/:listingId/:receiverId" element={<Chat />} />
+        <Route path="/admin" element={<DashboardAdmin />} />
+        <Route path="/completar-localizacao" element={<CompletarLocalizacao />} />
       </Routes>
     </Router>
   );
