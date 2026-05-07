@@ -7,6 +7,7 @@ import {
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell 
 } from 'recharts';
+import { Button } from '@/components/ui/button';
 import '../css/global.css';
 
 // Cores para o gráfico de pizza (Categorias)
@@ -173,25 +174,25 @@ export default function DashboardAdmin() {
             <TrendingUp size={20} />
             <span className="font-medium">Visão Geral</span>
           </Link>
-          <button className="w-full flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-slate-800 hover:text-white transition-colors text-left opacity-50 cursor-not-allowed" title="Em breve">
+          <Button type="button" variant="ghost" className="w-full flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-slate-800 hover:text-white transition-colors text-left opacity-50 cursor-not-allowed" title="Em breve">
             <ShieldAlert size={20} />
             <span className="font-medium">Moderação</span>
-          </button>
-          <button className="w-full flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-slate-800 hover:text-white transition-colors text-left opacity-50 cursor-not-allowed" title="Em breve">
+          </Button>
+          <Button type="button" variant="ghost" className="w-full flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-slate-800 hover:text-white transition-colors text-left opacity-50 cursor-not-allowed" title="Em breve">
             <Users size={20} />
             <span className="font-medium">Usuários</span>
-          </button>
+          </Button>
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          <button onClick={() => navigate('/')} className="w-full flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
+          <Button type="button" variant="ghost" onClick={() => navigate('/')} className="w-full flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
             <ArrowLeft size={20} />
             <span className="font-medium">Voltar ao Site</span>
-          </button>
-          <button onClick={handleLogout} className="w-full mt-2 flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-red-900/50 text-red-400 hover:text-red-300 transition-colors">
+          </Button>
+          <Button type="button" variant="ghost" onClick={handleLogout} className="w-full mt-2 flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-red-900/50 text-red-400 hover:text-red-300 transition-colors">
             <LogOut size={20} />
             <span className="font-medium">Sair</span>
-          </button>
+          </Button>
         </div>
       </aside>
 
@@ -202,9 +203,9 @@ export default function DashboardAdmin() {
             <h1 className="text-3xl font-bold text-slate-900">Dashboard Administrativo</h1>
             <p className="text-slate-500 mt-1">Acompanhe as métricas, vendas e crescimento da plataforma.</p>
           </div>
-          <button className="p-2 text-slate-400 hover:text-slate-600 bg-white rounded-full shadow-sm border border-slate-200">
+          <Button type="button" variant="outline" className="p-2 text-slate-400 hover:text-slate-600 bg-white rounded-full shadow-sm border border-slate-200">
             <Settings size={24} />
-          </button>
+          </Button>
         </header>
 
         {/* CARDS DE MÉTRICAS RÁPIDAS */}
@@ -369,12 +370,12 @@ export default function DashboardAdmin() {
                       <td className="px-6 py-4">{report.reporter?.full_name || 'Usuário'}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
-                          <button className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Ignorar (Falso Alarme)">
+                          <Button type="button" variant="ghost" className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Ignorar (Falso Alarme)">
                             <CheckCircle size={18} />
-                          </button>
-                          <button className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Deletar Anúncio">
+                          </Button>
+                          <Button type="button" variant="ghost" className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Deletar Anúncio">
                             <XCircle size={18} />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>

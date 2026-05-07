@@ -232,7 +232,7 @@ const CategoryProducts = () => {
                     </div>
                     <hr />
                     <Link to="/perfil" className="dropdown-item">Meu Perfil</Link>
-                    <button onClick={handleLogout} className="dropdown-item logout-item">Sair</button>
+                    <Button type="button" variant="ghost" onClick={handleLogout} className="dropdown-item logout-item">Sair</Button>
                   </div>
                 )}
               </div>
