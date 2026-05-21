@@ -125,13 +125,15 @@ export default function CompletarLocalizacao() {
           </form>
 
           <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-            <button 
+            <Button
+              type="button"
+              variant="ghost"
               onClick={handleLogout}
               className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
             >
               <LogOut className="h-4 w-4" />
               Sair e preencher depois
-            </button>
+            </Button>
           </div>
         </div>
       </div>

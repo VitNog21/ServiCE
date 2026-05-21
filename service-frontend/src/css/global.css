@@ -41,12 +41,14 @@ body {
 
 .header-search {
   flex: 1;
-  max-width: 500px;
+  /* allow wider header search to match layout in JSX and let absolute children overflow */
+  max-width: none;
   display: flex;
   margin: 0 20px;
   border: 2px solid #0A847C;
   border-radius: 8px;
-  overflow: hidden;
+  /* make dropdowns inside the search visible (advanced panel) */
+  overflow: visible;
   background: white;
 }
 

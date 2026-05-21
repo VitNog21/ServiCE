@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import { Package, ShoppingBag, CheckCircle2, Clock, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import { useToast } from '@/components/ui/toast';
 
 export default function MyOrders() {
   const [compras, setCompras] = useState([]);
@@ -10,6 +11,7 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('compras'); // 'compras' ou 'vendas'
   const navigate = useNavigate();
+  const toast = useToast();
 
   useEffect(() => {
     async function fetchOrders() {
@@ -78,22 +80,26 @@ export default function MyOrders() {
 
       {/* Abas de Navegação */}
       <div className="flex space-x-4 mb-6 border-b border-gray-200">
-        <button 
+        <Button
+          type="button"
+          variant="ghost"
           onClick={() => setTab('compras')}
           className={`pb-4 px-2 font-medium transition-colors ${tab === 'compras' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
         >
           <div className="flex items-center">
             <ShoppingBag className="mr-2 h-5 w-5" /> Minhas Compras ({compras.length})
           </div>
-        </button>
-        <button 
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
           onClick={() => setTab('vendas')}
           className={`pb-4 px-2 font-medium transition-colors ${tab === 'vendas' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
         >
           <div className="flex items-center">
             <Package className="mr-2 h-5 w-5" /> Minhas Vendas ({vendas.length})
           </div>
-        </button>
+        </Button>
       </div>
 
       {/* Lista de Pedidos */}
@@ -147,7 +153,7 @@ export default function MyOrders() {
                     <Button 
                       variant="default" 
                       className="w-full"
-                      onClick={() => alert('Redirecionando para o pagamento...')}
+                      onClick={() => toast.info('Integração de pagamento em desenvolvimento.')}
                     >
                       Pagar Agora
                     </Button>

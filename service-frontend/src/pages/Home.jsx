@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MessageCircle, Shield } from 'lucide-react';
+import { Search, MessageCircle, Shield, SlidersHorizontal, ChevronDown, X } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,12 +12,41 @@ const GEO_OPTIONS = {
   maximumAge: 60000,
 };
 
+const DISTANCE_OPTIONS = [
+  { label: 'Qualquer proximidade', value: '' },
+  { label: 'Até 1 km', value: '1' },
+  { label: 'Até 3 km', value: '3' },
+  { label: 'Até 5 km', value: '5' },
+  { label: 'Até 10 km', value: '10' },
+];
+
+const SORT_OPTIONS = [
+  { label: 'Relevância', value: 'relevance' },
+  { label: 'Mais próximos', value: 'distance' },
+  { label: 'Menor preço', value: 'price-asc' },
+  { label: 'Maior preço', value: 'price-desc' },
+  { label: 'Mais recentes', value: 'newest' },
+];
+
+const normalizeText = (value) => String(value ?? '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase();
+
 const Home = () => {
   const [user, setUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    categoryId: '',
+    minPrice: '',
+    maxPrice: '',
+    maxDistanceKm: '',
+    sortBy: 'relevance',
+  });
   const [listings, setListings] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +54,18 @@ const Home = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [hasUnread, setHasUnread] = useState(false); 
   const [locationSource, setLocationSource] = useState(null);
+  const advancedFiltersRef = useRef(null);
   const navigate = useNavigate();
+
+  const resetAdvancedFilters = () => {
+    setFilters({
+      categoryId: '',
+      minPrice: '',
+      maxPrice: '',
+      maxDistanceKm: '',
+      sortBy: 'relevance',
+    });
+  };
 
   // ==========================================
   // BUSCA PERFIL E ARMADILHA DE LOCALIZAÇÃO
@@ -164,6 +204,33 @@ const Home = () => {
 
     return `A ${(distance / 1000).toFixed(distance >= 10000 ? 0 : 1)}km de você`;
   };
+
+  const getListingCategoryId = (listing) => listing.category?.id || listing.category_id || listing.categoria_id || '';
+
+  const getListingCategoryName = (listing) => listing.category?.name || listing.category_name || listing.categoria_nome || 'Serviço';
+
+  const getListingPrice = (listing) => Number(listing.preco ?? listing.price ?? 0);
+
+  const getListingDistanceMeters = (listing) => {
+    const distanceMeters = listing.distancia_metros ?? listing.distance_meters ?? listing.distance;
+    const distance = Number(distanceMeters);
+    return Number.isFinite(distance) ? distance : null;
+  };
+
+  const getListingSearchableText = (listing) => normalizeText([
+    listing.titulo || listing.title,
+    listing.description,
+    getListingCategoryName(listing),
+    listing.address_text,
+  ].filter(Boolean).join(' '));
+
+  const activeFiltersCount = [
+    filters.categoryId,
+    filters.minPrice,
+    filters.maxPrice,
+    filters.maxDistanceKm,
+    filters.sortBy !== 'relevance',
+  ].filter(Boolean).length;
 
   // 1. Inicialização e Autenticação
   useEffect(() => {
@@ -319,6 +386,21 @@ const Home = () => {
     return () => window.removeEventListener('click', closeMenu);
   }, [showDropdown]);
 
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!showAdvancedFilters) {
+        return;
+      }
+
+      if (advancedFiltersRef.current && !advancedFiltersRef.current.contains(event.target)) {
+        setShowAdvancedFilters(false);
+      }
+    };
+
+    window.addEventListener('mousedown', handlePointerDown);
+    return () => window.removeEventListener('mousedown', handlePointerDown);
+  }, [showAdvancedFilters]);
+
   // 5. Verificar Mensagens Não Lidas com SUPABASE REALTIME
   useEffect(() => {
     if (!user) {
@@ -381,17 +463,88 @@ const Home = () => {
   };
 
   const filteredListings = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
+    const query = normalizeText(searchTerm.trim());
+    const minPrice = Number(filters.minPrice);
+    const maxPrice = Number(filters.maxPrice);
+    const maxDistanceMeters = filters.maxDistanceKm ? Number(filters.maxDistanceKm) * 1000 : null;
 
-    if (!query) {
-      return listings;
+    const filtered = listings.filter((listing) => {
+      const searchableText = getListingSearchableText(listing);
+      const categoryId = getListingCategoryId(listing);
+      const price = getListingPrice(listing);
+      const distanceMeters = getListingDistanceMeters(listing);
+
+      if (query && !searchableText.includes(query)) {
+        return false;
+      }
+
+      if (filters.categoryId) {
+        // Try to match by id first, then fallback to name comparison (normalized)
+        const selectedCategoryId = String(filters.categoryId);
+        const listingCategoryId = String(categoryId || '');
+        const listingCategoryName = normalizeText(getListingCategoryName(listing));
+        // derive selected category name from categories list when possible
+        const selectedCategoryName = normalizeText(
+          (categories.find((c) => String(c.id) === selectedCategoryId)?.name) || selectedCategoryId
+        );
+
+        if (listingCategoryId !== selectedCategoryId && listingCategoryName !== selectedCategoryName) {
+          return false;
+        }
+      }
+
+      if (filters.minPrice !== '' && (!Number.isFinite(minPrice) || price < minPrice)) {
+        return false;
+      }
+
+      if (filters.maxPrice !== '' && (!Number.isFinite(maxPrice) || price > maxPrice)) {
+        return false;
+      }
+
+      if (maxDistanceMeters !== null) {
+        if (!Number.isFinite(distanceMeters) || distanceMeters > maxDistanceMeters) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    const sorted = [...filtered];
+
+    switch (filters.sortBy) {
+      case 'distance':
+        sorted.sort((left, right) => {
+          const leftDistance = getListingDistanceMeters(left);
+          const rightDistance = getListingDistanceMeters(right);
+
+          if (!Number.isFinite(leftDistance) && !Number.isFinite(rightDistance)) {
+            return 0;
+          }
+          if (!Number.isFinite(leftDistance)) {
+            return 1;
+          }
+          if (!Number.isFinite(rightDistance)) {
+            return -1;
+          }
+          return leftDistance - rightDistance;
+        });
+        break;
+      case 'price-asc':
+        sorted.sort((left, right) => getListingPrice(left) - getListingPrice(right));
+        break;
+      case 'price-desc':
+        sorted.sort((left, right) => getListingPrice(right) - getListingPrice(left));
+        break;
+      case 'newest':
+        sorted.sort((left, right) => new Date(right.created_at || 0) - new Date(left.created_at || 0));
+        break;
+      default:
+        break;
     }
 
-    return listings.filter((listing) => {
-      const title = (listing.titulo || listing.title || '').toLowerCase();
-      return title.includes(query);
-    });
-  }, [listings, searchTerm]);
+    return sorted;
+  }, [filters.categoryId, filters.maxDistanceKm, filters.maxPrice, filters.minPrice, filters.sortBy, listings, searchTerm]);
 
   return (
     <div className="home-container relative min-h-screen">
@@ -405,21 +558,142 @@ const Home = () => {
         />
 
         <form className="header-search m-0 border-0 bg-transparent" onSubmit={(e) => e.preventDefault()}>
-          <div className="mx-auto flex w-full max-w-3xl items-center rounded-xl border border-[#0A847C]/25 bg-white p-1 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-            <Input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Estou procurando por..."
-              className="h-9 border-0 px-4 text-xs shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-            />
-            <Button
-              type="submit"
-              className="h-9 shrink-0 gap-2 rounded-lg bg-[#10B981] px-6 text-white hover:bg-[#059669]"
-            >
-              <Search className="h-5 w-5" />
-              <span className="hidden sm:inline">Buscar</span>
-            </Button>
+          <div ref={advancedFiltersRef} className="relative mx-auto flex w-full max-w-4xl flex-col gap-3">
+            <div className="flex w-full items-center gap-2 rounded-xl border border-[#0A847C]/25 bg-white p-1 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+              <div className="flex min-w-0 flex-1 items-center">
+                <Input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Estou procurando por..."
+                  className="h-9 border-0 px-4 text-xs shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+              <Button
+                type="submit"
+                className="h-9 shrink-0 gap-2 rounded-lg bg-[#10B981] px-5 text-white hover:bg-[#059669]"
+              >
+                <Search className="h-5 w-5" />
+                <span className="hidden sm:inline">Buscar</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAdvancedFilters((current) => !current)}
+                className="h-9 shrink-0 gap-2 rounded-lg border-[#0A847C]/20 px-4 text-[#0A847C] hover:bg-[#0A847C]/5 hover:text-[#0A847C]"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                <span className="hidden md:inline">Filtros</span>
+                {activeFiltersCount > 0 && (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0A847C] px-1.5 text-[10px] font-bold text-white">
+                    {activeFiltersCount}
+                  </span>
+                )}
+                <ChevronDown className={`h-4 w-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
+              </Button>
+            </div>
+
+            {showAdvancedFilters && (
+              <div className="absolute right-0 top-full z-40 mt-3 w-[min(94vw,36rem)] rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+                <div className="mb-5 flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">Filtros avançados</h3>
+                    <p className="mt-1 text-xs text-slate-500">Refine por categoria, preço e proximidade.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowAdvancedFilters(false)}
+                    className="h-8 w-8 rounded-full p-0 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="space-y-2 text-sm font-medium text-slate-700">
+                    <span className="block text-xs uppercase tracking-wide text-slate-500">Categoria</span>
+                    <select
+                      value={filters.categoryId}
+                      onChange={(e) => setFilters((current) => ({ ...current, categoryId: e.target.value }))}
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-[#0A847C]"
+                    >
+                      <option value="">Todas as categorias</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="space-y-2 text-sm font-medium text-slate-700">
+                    <span className="block text-xs uppercase tracking-wide text-slate-500">Proximidade</span>
+                    <select
+                      value={filters.maxDistanceKm}
+                      onChange={(e) => setFilters((current) => ({ ...current, maxDistanceKm: e.target.value }))}
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-[#0A847C]"
+                    >
+                      {DISTANCE_OPTIONS.map((option) => (
+                        <option key={option.value || 'all'} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="space-y-2 text-sm font-medium text-slate-700">
+                    <span className="block text-xs uppercase tracking-wide text-slate-500">Preço mínimo</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={filters.minPrice}
+                      onChange={(e) => setFilters((current) => ({ ...current, minPrice: e.target.value }))}
+                      placeholder="Ex: 50"
+                      className="h-11 rounded-xl border-slate-200 text-sm focus-visible:ring-[#0A847C]"
+                    />
+                  </label>
+
+                  <label className="space-y-2 text-sm font-medium text-slate-700">
+                    <span className="block text-xs uppercase tracking-wide text-slate-500">Preço máximo</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={filters.maxPrice}
+                      onChange={(e) => setFilters((current) => ({ ...current, maxPrice: e.target.value }))}
+                      placeholder="Ex: 300"
+                      className="h-11 rounded-xl border-slate-200 text-sm focus-visible:ring-[#0A847C]"
+                    />
+                  </label>
+
+                  <label className="space-y-2 text-sm font-medium text-slate-700 sm:col-span-2">
+                    <span className="block text-xs uppercase tracking-wide text-slate-500">Ordenar por</span>
+                    <select
+                      value={filters.sortBy}
+                      onChange={(e) => setFilters((current) => ({ ...current, sortBy: e.target.value }))}
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-[#0A847C]"
+                    >
+                      {SORT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                  <p className="text-xs text-slate-500">
+                    {activeFiltersCount > 0 ? `${activeFiltersCount} filtro(s) em uso.` : 'Sem filtros adicionais aplicados.'}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetAdvancedFilters}
+                    className="rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    Limpar filtros
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </form>
 
@@ -462,7 +736,7 @@ const Home = () => {
                     </div>
                     <hr />
                     <Link to="/perfil" className="dropdown-item">Meu Perfil</Link>
-                    <button onClick={handleLogout} className="dropdown-item logout-item">Sair</button>
+                    <Button type="button" variant="ghost" onClick={handleLogout} className="dropdown-item logout-item">Sair</Button>
                   </div>
                 )}
               </div>
@@ -485,7 +759,9 @@ const Home = () => {
           <div className="categories-row">
             {categories.length > 0 ? (
               categories.map((cat) => (
-                <button
+                <Button
+                  type="button"
+                  variant="unstyled"
                   key={cat.id}
                   onClick={() => navigate(`/categoria/${cat.id}`)}
                   className="category-pill"
@@ -494,7 +770,7 @@ const Home = () => {
                   onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 >
                   {cat.name}
-                </button>
+                </Button>
               ))
             ) : (
               <div style={{ color: '#94a3b8', fontSize: '14px' }}>Nenhuma categoria disponível</div>
@@ -511,11 +787,43 @@ const Home = () => {
               </p>
             </div>
 
-            {searchTerm.trim() ? (
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                Filtrando por: {searchTerm.trim()}
-              </span>
-            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {searchTerm.trim() ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                  Busca: {searchTerm.trim()}
+                </span>
+              ) : null}
+
+              {filters.categoryId ? (
+                <span className="rounded-full bg-[#0A847C]/10 px-3 py-1 text-xs font-medium text-[#0A847C]">
+                  Categoria: {categories.find((category) => String(category.id) === String(filters.categoryId))?.name || 'Selecionada'}
+                </span>
+              ) : null}
+
+              {filters.minPrice ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                  A partir de R$ {Number(filters.minPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              ) : null}
+
+              {filters.maxPrice ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                  Até R$ {Number(filters.maxPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              ) : null}
+
+              {filters.maxDistanceKm ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                  Até {filters.maxDistanceKm} km
+                </span>
+              ) : null}
+
+              {filters.sortBy !== 'relevance' ? (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                  Ordenação: {SORT_OPTIONS.find((option) => option.value === filters.sortBy)?.label || 'Personalizada'}
+                </span>
+              ) : null}
+            </div>
           </div>
 
           {error && (
@@ -548,9 +856,9 @@ const Home = () => {
                   ? listing.image_urls[0]
                   : listing.imagem_url || null;
                 const title = listing.titulo || listing.title || 'Anúncio sem título';
-                const priceValue = listing.preco ?? listing.price ?? 0;
-                const distanceMeters = listing.distancia_metros ?? listing.distance_meters;
-                const categoryName = listing.category?.name || listing.category_name || listing.categoria_nome || 'Serviço';
+                const priceValue = getListingPrice(listing);
+                const distanceMeters = getListingDistanceMeters(listing);
+                const categoryName = getListingCategoryName(listing);
                 const distanceLabel = formatDistance(distanceMeters);
 
                 return (
@@ -619,7 +927,9 @@ const Home = () => {
       </main>
 
       {user && (
-        <button
+        <Button
+          type="button"
+          variant="unstyled"
           onClick={() => navigate('/chat')}
           className="fixed bottom-8 right-8 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-[#0A847C] text-white shadow-xl transition-all duration-300 hover:scale-110 hover:bg-[#085a51] hover:shadow-2xl focus:outline-none"
           title="Abrir Chat"
@@ -632,7 +942,7 @@ const Home = () => {
               <span className="absolute top-0 right-0 h-4 w-4 animate-ping rounded-full bg-red-400 opacity-75" />
             </>
           )}
-        </button>
+        </Button>
       )}
     </div>
   );

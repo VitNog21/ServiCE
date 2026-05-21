@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/toast';
 import '../css/my-listings.css';
 
 const DELETE_REASON_OPTIONS = [
@@ -35,6 +36,7 @@ const MyListings = () => {
   const [deleteReason, setDeleteReason] = useState('sold_elsewhere');
   const [deleteReasonDetails, setDeleteReasonDetails] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const toast = useToast();
 
   useEffect(() => {
     const fetchMyListings = async () => {
@@ -138,7 +140,7 @@ const MyListings = () => {
       );
     } catch (error) {
       console.error('Erro ao atualizar status do anúncio:', error);
-      alert('Erro ao atualizar anúncio');
+      toast.error('Erro ao atualizar anúncio.');
     } finally {
       setUpdatingId(null);
     }
@@ -167,7 +169,7 @@ const MyListings = () => {
       setListings((currentListings) => currentListings.filter((listing) => listing.id !== listingId));
     } catch (error) {
       console.error('Erro ao apagar anúncio:', error);
-      alert('Erro ao apagar anúncio');
+      toast.error('Erro ao apagar anúncio.');
     } finally {
       setUpdatingId(null);
     }
@@ -266,18 +268,22 @@ const MyListings = () => {
 
       {/* Abas */}
       <div className="listings-tabs">
-        <button
+        <Button
+          type="button"
+          variant="ghost"
           className={`tab-button ${activeTab === 'ativo' ? 'active' : ''}`}
           onClick={() => setActiveTab('ativo')}
         >
           Meus Anúncios ({activeListings.length})
-        </button>
-        <button
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
           className={`tab-button ${activeTab === 'vendidos' ? 'active' : ''}`}
           onClick={() => setActiveTab('vendidos')}
         >
           Anúncios Vendidos ({soldListings.length})
-        </button>
+        </Button>
       </div>
 
       {filteredListings.length === 0 ? (
@@ -303,8 +309,9 @@ const MyListings = () => {
         <div className="listings-grid">
           {filteredListings.map(listing => (
             <div key={listing.id} className="listing-card">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 className="listing-hero"
                 onClick={() => navigate(`/detalhes/${listing.id}`)}
               >
@@ -324,7 +331,7 @@ const MyListings = () => {
                   <span className="listing-category">{listing.category?.name || 'Sem categoria'}</span>
                   <h3 className="listing-item-title">{listing.title}</h3>
                 </div>
-              </button>
+              </Button>
               
               <div className="listing-info">
                 <div className="listing-price">{formatPrice(listing.price)}</div>
@@ -350,55 +357,60 @@ const MyListings = () => {
                         className="absolute bottom-full right-0 z-30 mb-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                           onClick={() => handleEditListing(listing.id)}
                         >
                           Editar
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                           onClick={() => handleMarkAsSold(listing.id)}
                           disabled={updatingId === listing.id || listing.status === 'sold'}
                         >
                           Marcar como Vendido
-                        </button>
+                        </Button>
 
                         {listing.status === 'active' && (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
                             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                             onClick={() => pauseListing(listing.id)}
                             disabled={updatingId === listing.id}
                           >
                             <PauseCircle className="h-4 w-4 text-slate-500" />
                             Pausar Anúncio
-                          </button>
+                          </Button>
                         )}
 
                         {listing.status === 'paused' && (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
                             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                             onClick={() => reactivateListing(listing.id)}
                             disabled={updatingId === listing.id}
                           >
                             <Play className="h-4 w-4 text-emerald-600" />
                             Reativar anúncio
-                          </button>
+                          </Button>
                         )}
 
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                           onClick={() => openDeleteModal(listing)}
                         >
                           <Trash2 className="h-4 w-4" />
                           Excluir
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -421,7 +433,7 @@ const MyListings = () => {
           setIsDeleteModalOpen(true);
         }}
       >
-        <DialogContent className="max-w-2xl border-0 p-0 shadow-[0_24px_80px_rgba(15,23,42,0.2)]">
+        <DialogContent className="max-w-2xl border-0 p-0 shadow-[0_24px_80px_rgba(15,23,42,0.2)] max-h-[85vh] flex flex-col">
           <DialogHeader className="border-b border-slate-100 px-6 py-5 sm:px-8">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
@@ -435,19 +447,20 @@ const MyListings = () => {
               </div>
 
               <DialogClose asChild>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Fechar modal"
                 >
                   <X className="h-5 w-5" />
-                </button>
+                </Button>
               </DialogClose>
             </div>
           </DialogHeader>
 
-          <div className="space-y-6 px-6 py-6 sm:px-8">
-            <div className="space-y-3">
+          <div className="space-y-6 px-6 py-6 sm:px-8 overflow-y-auto">
+            <div className="space-y-4">
               {DELETE_REASON_OPTIONS.map((option) => (
                 <label
                   key={option.value}
