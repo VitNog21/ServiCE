@@ -10,6 +10,7 @@ import CategoryProducts from './pages/CategoryProducts';
 import Chat from './pages/Chat';
 import DashboardAdmin from './pages/DashboardAdmin';
 import CompletarLocalizacao from './pages/CompletarLocalizacao';
+import Search from './pages/Search';
 import { ToastProvider } from './components/ui/toast';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/busca" element={<Search />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/perfil" element={<EditProfile />} />
