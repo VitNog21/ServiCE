@@ -192,6 +192,25 @@ const SearchListings = () => {
     return () => { isMounted = false; subscription.unsubscribe(); };
   }, []);
 
+  // Carrega parâmetros da URL e aplica aos filtros
+  useEffect(() => {
+    const q = searchParams.get('q');
+    const category = searchParams.get('category');
+    const minPrice = searchParams.get('minPrice');
+    const maxPrice = searchParams.get('maxPrice');
+    const maxDistance = searchParams.get('maxDistance');
+    const sort = searchParams.get('sort');
+
+    if (q) setSearchTerm(q);
+    setFilters({
+      categoryId: category || '',
+      minPrice: minPrice || '',
+      maxPrice: maxPrice || '',
+      maxDistanceKm: maxDistance ? String(Number(maxDistance) / 1000) : '', // Converte de metros para km
+      sortBy: sort || 'relevance',
+    });
+  }, [searchParams]);
+
   // Categorias
   useEffect(() => {
     const fetchCategories = async () => {
