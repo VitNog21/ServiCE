@@ -178,8 +178,8 @@ const Home = () => {
     return `${(distance / 1000).toFixed(1)}km`;
   };
 
-  const getListingCategoryId = (listing) => listing.category?.id || listing.category_id || '';
-  const getListingCategoryName = (listing) => listing.category?.name || listing.category_name || 'Serviço';
+  const getListingCategoryId = (listing) => listing.category?.id || listing.category_id || listing.categoria_id || listing.categoryId || '';
+  const getListingCategoryName = (listing) => listing.category?.name || listing.category_name || listing.categoria_nome || listing.categoryName || 'Serviço';
   const getListingPrice = (listing) => Number(listing.preco ?? listing.price ?? 0);
   const getListingDistanceMeters = (listing) => {
     const distance = Number(listing.distancia_metros ?? listing.distance_meters ?? listing.distance);
@@ -259,7 +259,7 @@ const Home = () => {
           return;
         } catch (err) {}
 
-        const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category:categories(id, name), address_text, created_at`).eq('status', 'active').order('created_at', { ascending: false }).limit(50);
+        const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, category:categories(id, name), address_text, created_at`).eq('status', 'active').order('created_at', { ascending: false }).limit(50);
         if (error) throw error;
         if (isMounted) setListings(Array.isArray(data) ? data : []);
       } catch (err) {

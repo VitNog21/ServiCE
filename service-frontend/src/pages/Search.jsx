@@ -146,8 +146,7 @@ const SearchListings = () => {
     return `${(distance / 1000).toFixed(1)}km`;
   };
 
-  const getListingCategoryId = (listing) => listing.category?.id || listing.category_id || '';
-  const getListingCategoryName = (listing) => listing.category?.name || listing.category_name || 'Serviço';
+  const getListingCategoryName = (listing) => listing.category?.name || listing.category_name || listing.categoria_nome || listing.categoryName || 'Serviço';
   const getListingPrice = (listing) => Number(listing.preco ?? listing.price ?? 0);
   const getListingDistanceMeters = (listing) => {
     const distance = Number(listing.distancia_metros ?? listing.distance_meters ?? listing.distance);
@@ -248,7 +247,7 @@ const SearchListings = () => {
           return;
         } catch (err) {}
 
-        const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category:categories(id, name), address_text, created_at`).eq('status', 'active').order('created_at', { ascending: false }).limit(50);
+        const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, category:categories(id, name), address_text, created_at`).eq('status', 'active').order('created_at', { ascending: false }).limit(50);
         if (error) throw error;
         if (isMounted) setListings(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -267,14 +266,29 @@ const SearchListings = () => {
     const maxPrice = Number(filters.maxPrice);
     const maxDistanceMeters = filters.maxDistanceKm ? Number(filters.maxDistanceKm) * 1000 : null;
 
+    // Resolve o nome da categoria selecionada a partir do ID ou do próprio valor.
+    // Usa String() em ambos os lados porque c.id pode ser integer (2) enquanto
+    // filters.categoryId é sempre string (HTML input sempre retorna string).
+    const selectedCategoryName = filters.categoryId
+      ? normalizeText(
+          categories.find((c) => String(c.id) === String(filters.categoryId))?.name ?? ''
+        )
+      : '';
+
     const filtered = listings.filter((listing) => {
       const searchableText = getListingSearchableText(listing);
-      const categoryId = getListingCategoryId(listing);
       const price = getListingPrice(listing);
       const distanceMeters = getListingDistanceMeters(listing);
 
       if (query && !searchableText.includes(query)) return false;
-      if (filters.categoryId && String(categoryId) !== String(filters.categoryId)) return false;
+
+      // Compara por NOME da categoria (case-insensitive, sem acentos) para ser
+      // robusto independente de qual tabela/RPC gerou o listing
+      if (selectedCategoryName) {
+        const listingCategoryName = normalizeText(getListingCategoryName(listing));
+        if (listingCategoryName !== selectedCategoryName) return false;
+      }
+
       if (filters.minPrice !== '' && (!Number.isFinite(minPrice) || price < minPrice)) return false;
       if (filters.maxPrice !== '' && (!Number.isFinite(maxPrice) || price > maxPrice)) return false;
       if (maxDistanceMeters !== null && (!Number.isFinite(distanceMeters) || distanceMeters > maxDistanceMeters)) return false;
@@ -295,7 +309,7 @@ const SearchListings = () => {
       default: break;
     }
     return sorted;
-  }, [filters, listings, searchTerm]);
+  }, [filters, listings, searchTerm, categories]);
 
   const toggleDropdown = (e) => { e.stopPropagation(); };
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setAvatarUrl(null); setUserRole(null); navigate('/'); };
