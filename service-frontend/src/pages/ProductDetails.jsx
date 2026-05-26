@@ -248,17 +248,25 @@ export default function ProductDetails() {
       
       {/* Header Fixo */}
       <div className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-8">
+        <div style={{ width: '100%', padding: '0 32px' }}>
           <div className="h-16 flex items-center justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-slate-700 hover:text-[#0A847C] hover:bg-[#0A847C]/5 transition-colors rounded-xl px-3"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="font-medium">Voltar para busca</span>
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => navigate(-1)}
+                className="text-slate-600 hover:text-[#0A847C] hover:bg-[#0A847C]/5 transition-colors rounded-xl p-2 h-auto w-auto"
+                title="Voltar"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <img
+                src="/assets/logo_service.png"
+                alt="ServiCE"
+                className="h-8 cursor-pointer"
+                onClick={() => navigate('/')}
+              />
+            </div>
             <div className="inline-flex items-center gap-2 rounded-xl bg-[#0A847C]/10 px-4 py-1.5">
               <span className="text-xs font-bold text-[#0A847C] uppercase tracking-wider">
                 {categoria}
@@ -269,15 +277,15 @@ export default function ProductDetails() {
       </div>
 
       {/* Conteúdo Principal */}
-      <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 py-8 flex-1">
+      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 24px', flex: 1, width: '100%' }}>
         
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start justify-center">
+
           {/* LADO ESQUERDO (Foto + Descrição) */}
-          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6 w-full">
+          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6 w-full" style={{ minWidth: 0 }}>
             
             {/* Galeria de Fotos */}
-            <div className="bg-slate-100/50 rounded-3xl border border-slate-200 shadow-sm overflow-hidden relative w-full h-[350px] md:h-[450px] lg:h-[550px] flex items-center justify-center p-4">
+            <div className="bg-slate-100/50 rounded-3xl border border-slate-200 shadow-sm overflow-hidden relative w-full h-[350px] md:h-[450px] lg:h-[520px] flex items-center justify-center p-4" style={{ alignSelf: 'center' }}>
               <img 
                 src={fotoExibida}
                 alt={`${titulo} - foto ${fotoAtual + 1}`}
@@ -314,7 +322,7 @@ export default function ProductDetails() {
 
             {/* Miniaturas */}
             {fotos.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 w-full custom-scrollbar">
+              <div className="flex gap-3 overflow-x-auto pb-2 w-full custom-scrollbar justify-center">
                 {fotos.map((foto, index) => (
                   <Button
                     type="button"
