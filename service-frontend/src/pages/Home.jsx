@@ -438,9 +438,26 @@ const Home = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-                  <button type="button" onClick={resetAdvancedFilters} className="text-slate-500 text-sm hover:underline font-medium">Limpar Filtros</button>
-                  <button type="button" onClick={handleSearchSubmit} className="bg-[#0A847C] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#085a51] transition-colors">Aplicar e Buscar</button>
+                <div className="flex flex-col gap-3 pt-5 border-t border-slate-100">
+                  {/* Botão principal — CTA primário, fácil de identificar */}
+                  <button
+                    type="button"
+                    onClick={handleSearchSubmit}
+                    className="w-full h-12 rounded-xl bg-[#0A847C] hover:bg-[#085a51] active:scale-[0.98] text-white font-bold text-base flex items-center justify-center gap-2 transition-all shadow-sm shadow-[#0A847C]/30"
+                  >
+                    <Search size={18} />
+                    Aplicar e Buscar
+                  </button>
+
+                  {/* Botão secundário — limpar, claramente visível mas menos destacado */}
+                  <button
+                    type="button"
+                    onClick={resetAdvancedFilters}
+                    className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 active:scale-[0.98] text-slate-600 font-semibold text-sm flex items-center justify-center gap-2 transition-all"
+                  >
+                    <X size={15} />
+                    Limpar Filtros
+                  </button>
                 </div>
               </div>
             )}
