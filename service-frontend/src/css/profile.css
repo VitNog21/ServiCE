@@ -13,7 +13,7 @@
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   padding: 40px;
-  max-width: 600px;
+  max-width: 720px;
   width: 100%;
 }
 
@@ -79,8 +79,8 @@
 
 /* SECTIONS */
 .profile-section {
-  margin-bottom: 30px;
-  padding-bottom: 20px;
+  margin-bottom: 34px;
+  padding-bottom: 24px;
   border-bottom: 1px solid #f0f0f0;
 }
 
@@ -92,7 +92,7 @@
   font-size: 16px;
   font-weight: 700;
   color: #0A3B66;
-  margin: 0 0 20px 0;
+  margin: 0 0 24px 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -171,7 +171,7 @@
 
 /* INPUT GROUPS */
 .input-group {
-  margin-bottom: 18px;
+  margin-bottom: 22px;
   display: flex;
   flex-direction: column;
 }
@@ -280,7 +280,7 @@
 .profile-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
   margin-top: 30px;
 }
 
@@ -331,7 +331,7 @@
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .profile-card {
-    padding: 25px;
+    padding: 24px 18px;
   }
 
   .profile-title {
@@ -368,5 +368,13 @@
   .input-group input,
   .input-group select {
     font-size: 16px;
+  }
+
+  .section-title {
+    margin-bottom: 18px;
+  }
+
+  .input-group {
+    margin-bottom: 18px;
   }
 }
