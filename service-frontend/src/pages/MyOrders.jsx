@@ -11,7 +11,7 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('compras'); // 'compras' ou 'vendas'
   const navigate = useNavigate();
-  const toast = useToast();
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchOrders() {
@@ -21,41 +21,63 @@ export default function MyOrders() {
         return;
       }
 
-      // Buscar pedidos onde sou o comprador ou o vendedor
+      // Fetch orders where I am the buyer or the seller
       const { data, error } = await supabase
-        .from('pedidos')
+        .from('orders')
         .select(`
           *,
-          anuncios (titulo, imagem_url, preco)
+          listings (title, image_urls, price)
         `)
-        .or(`comprador_id.eq.${user.id},vendedor_id.eq.${user.id}`)
-        .order('data_criacao', { ascending: false });
+        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
 
       if (!error) {
-        setCompras(data.filter(p => p.comprador_id === user.id));
-        setVendas(data.filter(p => p.vendedor_id === user.id));
+        setCompras(data.filter(p => p.buyer_id === user.id));
+        setVendas(data.filter(p => p.seller_id === user.id));
       }
       setLoading(false);
     }
     fetchOrders();
   }, [navigate]);
 
+  const handleConfirmReceipt = async (pedidoId) => {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'concluido' })
+      .eq('id', pedidoId);
+
+    if (!error) {
+      setCompras(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'concluido' } : p));
+      toast({
+        title: "Sucesso!",
+        description: "Recebimento confirmado.",
+      });
+    }
+  };
+
   const getStatusBadge = (status) => {
     const styles = {
+      pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
       pendente: "bg-yellow-100 text-yellow-700 border-yellow-200",
+      paid: "bg-blue-100 text-blue-700 border-blue-200",
       pago: "bg-blue-100 text-blue-700 border-blue-200",
+      completed: "bg-green-100 text-green-700 border-green-200",
       concluido: "bg-green-100 text-green-700 border-green-200",
+      cancelled: "bg-red-100 text-red-700 border-red-200",
       cancelado: "bg-red-100 text-red-700 border-red-200"
     };
     const icons = {
+      pending: <Clock className="w-4 h-4 mr-1" />,
       pendente: <Clock className="w-4 h-4 mr-1" />,
+      paid: <AlertCircle className="w-4 h-4 mr-1" />,
       pago: <AlertCircle className="w-4 h-4 mr-1" />,
+      completed: <CheckCircle2 className="w-4 h-4 mr-1" />,
       concluido: <CheckCircle2 className="w-4 h-4 mr-1" />
     };
 
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status]}`}>
-        {icons[status]} {status.toUpperCase()}
+        {icons[status]} {(status || '').toUpperCase()}
       </span>
     );
   };
@@ -80,26 +102,22 @@ export default function MyOrders() {
 
       {/* Abas de Navegação */}
       <div className="flex space-x-4 mb-6 border-b border-gray-200">
-        <Button
-          type="button"
-          variant="ghost"
+        <button 
           onClick={() => setTab('compras')}
           className={`pb-4 px-2 font-medium transition-colors ${tab === 'compras' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
         >
           <div className="flex items-center">
             <ShoppingBag className="mr-2 h-5 w-5" /> Minhas Compras ({compras.length})
           </div>
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
+        </button>
+        <button 
           onClick={() => setTab('vendas')}
           className={`pb-4 px-2 font-medium transition-colors ${tab === 'vendas' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
         >
           <div className="flex items-center">
             <Package className="mr-2 h-5 w-5" /> Minhas Vendas ({vendas.length})
           </div>
-        </Button>
+        </button>
       </div>
 
       {/* Lista de Pedidos */}
@@ -115,21 +133,21 @@ export default function MyOrders() {
                 <div className="flex items-center space-x-4">
                   <div className="h-16 w-16 bg-gray-100 rounded-lg overflow-hidden">
                     <img 
-                      src={pedido.anuncios?.imagem_url || 'https://via.placeholder.com/150'} 
-                      alt={pedido.anuncios?.titulo}
+                      src={pedido.listings?.image_urls?.[0] || 'https://via.placeholder.com/150'} 
+                      alt={pedido.listings?.title}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">{pedido.anuncios?.titulo}</h3>
+                    <h3 className="font-semibold text-gray-900">{pedido.listings?.title}</h3>
                     <p className="text-sm text-gray-500">Pedido #{pedido.id.slice(0, 8)}</p>
-                    <p className="text-xs text-gray-400">Em {new Date(pedido.data_criacao).toLocaleDateString('pt-BR')}</p>
+                    <p className="text-xs text-gray-400">Em {new Date(pedido.created_at).toLocaleDateString('pt-BR')}</p>
                   </div>
                 </div>
 
                 <div className="flex flex-col items-end">
                   <span className="text-lg font-bold text-gray-900">
-                    R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {(pedido.total_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                   <div className="mt-2">
                     {getStatusBadge(pedido.status)}
@@ -137,23 +155,23 @@ export default function MyOrders() {
                 </div>
 
                 <div className="w-full md:w-auto mt-4 md:mt-0">
-                  {tab === 'compras' && pedido.status === 'pago' && (
+                  {tab === 'compras' && (pedido.status === 'paid' || pedido.status === 'pago') && (
                     <Button 
                       variant="outline" 
                       className="w-full text-green-600 border-green-200 hover:bg-green-50"
-                      onClick={async () => {
-                        await supabase.from('pedidos').update({ status: 'concluido' }).eq('id', pedido.id);
-                        window.location.reload();
-                      }}
+                      onClick={() => handleConfirmReceipt(pedido.id)}
                     >
                       Confirmar Recebimento
                     </Button>
                   )}
-                  {pedido.status === 'pendente' && (
+                  {tab === 'vendas' && pedido.status === 'pago' && (
+                    <p className="text-xs text-blue-600 font-medium">🛡️ Pagamento retido (Escrow)</p>
+                  )}
+                  {(pedido.status === 'pending' || pedido.status === 'pendente') && tab === 'compras' && (
                     <Button 
                       variant="default" 
                       className="w-full"
-                      onClick={() => toast.info('Integração de pagamento em desenvolvimento.')}
+                      onClick={() => navigate(`/checkout/${pedido.id}`)}
                     >
                       Pagar Agora
                     </Button>

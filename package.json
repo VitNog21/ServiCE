@@ -1,0 +1,9 @@
+{
+  "name": "service-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "node setup-env.js",
+    "dev": "node setup-env.js && docker-compose up --build"
+  }
+}
