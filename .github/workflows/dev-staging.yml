@@ -1,0 +1,58 @@
+name: ServiCE Staging - CI/CD
+
+on:
+  push:
+    branches: [ dev ]
+  workflow_dispatch: # Permite rodar manualmente
+
+jobs:
+  # JOB 1: VALIDAR AMBIENTE (LINT E BUILD)
+  validate:
+    name: Build & Validate Containers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Container (Test)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./service-backend
+          push: false
+          tags: service-backend:test
+
+      - name: Build Frontend Container (Test)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./service-frontend
+          push: false
+          tags: service-frontend:test
+
+  # JOB 2: DEPLOY PARA STAGING
+  # Nota: Este job depende do sucesso do Job 1
+  deploy-staging:
+    name: Deploy to Staging
+    needs: validate
+    runs-on: ubuntu-latest
+    # Aqui você conectaria com seu provider (Render, Railway, etc)
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log Deployment Start
+        run: echo "🚀 Iniciando deploy automático para ambiente de quebra (Staging)..."
+
+      # EXEMPLO: Deploy via SSH para uma VPS de Teste (Caso você use uma)
+      # - name: Deploy via SSH
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.STAGING_HOST }}
+      #     username: ${{ secrets.STAGING_USER }}
+      #     key: ${{ secrets.STAGING_SSH_KEY }}
+      #     script: |
+      #       cd /app/staging
+      #       git pull origin dev
+      #       docker-compose up -d --build

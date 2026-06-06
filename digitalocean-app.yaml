@@ -1,0 +1,39 @@
+name: service-staging
+region: nyc
+services:
+  - name: service-backend
+    github:
+      branch: dev
+      deploy_on_push: true
+      repo: VitNog21/ServiCE
+    dockerfile_path: service-backend/Dockerfile
+    envs:
+      - key: PORT
+        scope: RUN_TIME
+        value: "3000"
+      - key: SUPABASE_URL
+        scope: RUN_TIME
+        value: ${SUPABASE_URL}
+      - key: SUPABASE_ANON_KEY
+        scope: RUN_TIME
+        value: ${SUPABASE_ANON_KEY}
+      - key: MERCADO_PAGO_ACCESS_TOKEN
+        scope: RUN_TIME
+        value: ${MERCADO_PAGO_ACCESS_TOKEN}
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+
+  - name: service-frontend
+    github:
+      branch: dev
+      deploy_on_push: true
+      repo: VitNog21/ServiCE
+    dockerfile_path: service-frontend/Dockerfile
+    envs:
+      - key: VITE_API_URL
+        scope: RUN_TIME
+        value: ${_SELF_URL} # Puxa a própria URL do app para o front falar com o back
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-xxs

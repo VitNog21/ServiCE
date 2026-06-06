@@ -37,7 +37,7 @@ export const OrderController = {
 
     const { data, error } = await supabase
       .from('pedidos')
-      .update({ status: 'pago' })
+      .update({ status: 'paid' })
       .eq('id', orderId)
       .select();
 

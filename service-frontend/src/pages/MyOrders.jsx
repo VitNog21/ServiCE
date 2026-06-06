@@ -43,33 +43,33 @@ export default function MyOrders() {
   const handleConfirmReceipt = async (pedidoId) => {
     const { error } = await supabase
       .from('orders')
-      .update({ status: 'concluido' })
+      .update({ status: 'completed' })
       .eq('id', pedidoId);
 
     if (!error) {
-      setCompras(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'concluido' } : p));
-      toast({
-        title: "Sucesso!",
-        description: "Recebimento confirmado.",
-      });
+      setCompras(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'completed' } : p));
+      toast.success('Recebimento confirmado!');
     }
   };
 
   const getStatusBadge = (status) => {
     const styles = {
       pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
-      pendente: "bg-yellow-100 text-yellow-700 border-yellow-200",
       paid: "bg-blue-100 text-blue-700 border-blue-200",
-      pago: "bg-blue-100 text-blue-700 border-blue-200",
       completed: "bg-green-100 text-green-700 border-green-200",
-      concluido: "bg-green-100 text-green-700 border-green-200",
       cancelled: "bg-red-100 text-red-700 border-red-200",
-      cancelado: "bg-red-100 text-red-700 border-red-200"
+    };
+
+    const labels = {
+      pending: "AGUARDANDO PAGAMENTO",
+      paid: "PAGO (AGUARDANDO ENTREGA)",
+      completed: "CONCLUÍDO",
+      cancelled: "CANCELADO"
     };
 
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status]}`}>
-        {(status || '').toUpperCase()}
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status] || "bg-gray-100 text-gray-700"}`}>
+        {labels[status] || (status || '').toUpperCase()}
       </span>
     );
   };
@@ -147,7 +147,7 @@ export default function MyOrders() {
                 </div>
 
                 <div className="w-full md:w-auto mt-4 md:mt-0">
-                  {tab === 'compras' && (pedido.status === 'paid' || pedido.status === 'pago') && (
+                  {tab === 'compras' && (pedido.status === 'paid') && (
                     <Button 
                       variant="outline" 
                       className="w-full text-green-600 border-green-200 hover:bg-green-50"
@@ -156,7 +156,7 @@ export default function MyOrders() {
                       Confirmar Recebimento
                     </Button>
                   )}
-                  {tab === 'vendas' && pedido.status === 'pago' && (
+                  {tab === 'vendas' && pedido.status === 'paid' && (
                     <p className="text-xs text-blue-600 font-medium">🛡️ Pagamento retido (Escrow)</p>
                   )}
                   {(pedido.status === 'pending' || pedido.status === 'pendente') && tab === 'compras' && (

@@ -19,7 +19,7 @@ export default function Success() {
         
         <div className="space-y-3">
           <Button 
-            onClick={() => navigate('/meus-anuncios')} 
+            onClick={() => navigate('/meus-pedidos')} 
             className="w-full bg-[#0A847C] hover:bg-[#085a51] h-12 text-lg font-bold rounded-xl shadow-md transition-all"
           >
             <Package className="mr-2 h-5 w-5" /> Ver Meus Pedidos

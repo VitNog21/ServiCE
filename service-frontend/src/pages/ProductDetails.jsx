@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 
+import { useToast } from '@/components/ui/toast';
+
 const REPORT_REASONS = [
   { value: 'Fraude ou Golpe', label: 'Fraude ou Golpe' },
   { value: 'Conteúdo Inadequado', label: 'Conteúdo Inadequado' },
@@ -41,6 +43,7 @@ export default function ProductDetails() {
   const [reportReason, setReportReason] = useState('Fraude ou Golpe');
   const [reportDetails, setReportDetails] = useState('');
   const [isReporting, setIsReporting] = useState(false);
+  const { toast } = useToast();
 
   // Carregar usuário autenticado
   useEffect(() => {
@@ -72,6 +75,7 @@ export default function ProductDetails() {
             description,
             price,
             image_urls,
+            status,
             category:categories(name),
             address_text,
             owner_id,
@@ -113,7 +117,7 @@ export default function ProductDetails() {
       return;
     }
     if (currentUser.id === produto.owner_id) {
-      alert('Você não pode conversar com você mesmo!');
+      toast.info('Você não pode conversar com você mesmo.', 'Aviso');
       return;
     }
     navigate(`/chat/${produto.id}/${produto.owner_id}`);
@@ -123,7 +127,8 @@ export default function ProductDetails() {
     setComprando(true);
     
     if (!currentUser) {
-      alert("Você precisa estar logado para comprar!");
+      toast.info('Você precisa estar logado para comprar.', 'Login necessário');
+      setComprando(false);
       navigate('/login');
       return;
     }
@@ -142,7 +147,7 @@ export default function ProductDetails() {
       .select();
 
     if (error) {
-      alert("Erro ao processar pedido: " + error.message);
+      toast.error(`Erro ao processar pedido: ${error.message}`);
     } else {
       const newOrder = data[0];
       navigate(`/checkout/${newOrder.id}`); 
@@ -152,13 +157,13 @@ export default function ProductDetails() {
 
   const handleReport = async () => {
     if (!currentUser) {
-      alert('Você precisa estar logado para denunciar um anúncio.');
+      toast.info('Você precisa estar logado para denunciar um anúncio.', 'Login necessário');
       navigate('/login');
       return;
     }
 
     if (reportReason === 'Outro' && !reportDetails.trim()) {
-      alert('Por favor, detalhe o motivo da denúncia.');
+      toast.info('Por favor, detalhe o motivo da denúncia.', 'Detalhes necessários');
       return;
     }
 
@@ -177,13 +182,13 @@ export default function ProductDetails() {
 
       if (error) throw error;
 
-      alert('Sua denúncia foi recebida com sucesso! Nossa equipe irá analisar o anúncio em breve.');
+      toast.success('Sua denúncia foi recebida com sucesso! Nossa equipe irá analisar o anúncio em breve.');
       setIsReportModalOpen(false);
       setReportDetails('');
       setReportReason('Fraude ou Golpe');
     } catch (err) {
       console.error('Erro ao denunciar:', err);
-      alert('Ocorreu um erro ao enviar a denúncia. Tente novamente.');
+      toast.error('Ocorreu um erro ao enviar a denúncia. Tente novamente.');
     } finally {
       setIsReporting(false);
     }

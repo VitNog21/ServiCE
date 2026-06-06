@@ -124,9 +124,10 @@ const MyListings = () => {
 
       setListings((current) => current.filter((l) => l.id !== listingId));
       setIsVendaModalOpen(false);
-      toast({ title: "Sucesso", description: "Anúncio removido." });
+      toast.success("Anúncio removido.");
     } catch (error) {
       console.error('Erro ao apagar:', error);
+      toast.error("Erro ao apagar anúncio.");
     } finally {
       setUpdatingId(null);
     }
@@ -136,7 +137,7 @@ const MyListings = () => {
     if (!selectedListing) return;
     await updateListingStatus(selectedListing.id, 'sold');
     setIsVendaModalOpen(false);
-    toast({ title: "Sucesso!", description: "Anúncio marcado como vendido." });
+    toast.success("Anúncio marcado como vendido.");
   };
 
   const activeListings = useMemo(
