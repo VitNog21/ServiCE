@@ -10,6 +10,7 @@ const buttonVariants = cva(
         default: 'bg-[#10B981] text-white hover:bg-[#059669]',
         outline: 'border border-[#10B981]/35 bg-white text-[#0A3B66] hover:bg-[#f2fbfa]',
         ghost: 'bg-transparent text-[#0A3B66] hover:bg-[#eaf8f4]',
+        unstyled: '',
       },
       size: {
         default: 'h-10 px-4 py-2',

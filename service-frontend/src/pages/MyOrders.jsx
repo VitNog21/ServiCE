@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import { Package, ShoppingBag, CheckCircle2, Clock, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import { useToast } from '@/components/ui/toast';
 
 export default function MyOrders() {
   const [compras, setCompras] = useState([]);
@@ -10,6 +11,7 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('compras'); // 'compras' ou 'vendas'
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchOrders() {
@@ -29,39 +31,29 @@ export default function MyOrders() {
         .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        // Fallback for transition period
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('pedidos')
-          .select(`
-            *,
-            anuncios (titulo, imagem_url, preco)
-          `)
-          .or(`comprador_id.eq.${user.id},vendedor_id.eq.${user.id}`)
-          .order('data_criacao', { ascending: false });
-
-        if (!fallbackError) {
-          setCompras(fallbackData.filter(p => p.comprador_id === user.id).map(p => ({
-            ...p,
-            listing: p.anuncios,
-            total_price: p.valor_total,
-            created_at: p.data_criacao
-          })));
-          setVendas(fallbackData.filter(p => p.vendedor_id === user.id).map(p => ({
-            ...p,
-            listing: p.anuncios,
-            total_price: p.valor_total,
-            created_at: p.data_criacao
-          })));
-        }
-      } else {
-        setCompras(data.filter(p => p.buyer_id === user.id || p.comprador_id === user.id));
-        setVendas(data.filter(p => p.seller_id === user.id || p.vendedor_id === user.id));
+      if (!error) {
+        setCompras(data.filter(p => p.buyer_id === user.id));
+        setVendas(data.filter(p => p.seller_id === user.id));
       }
       setLoading(false);
     }
     fetchOrders();
   }, [navigate]);
+
+  const handleConfirmReceipt = async (pedidoId) => {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'concluido' })
+      .eq('id', pedidoId);
+
+    if (!error) {
+      setCompras(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'concluido' } : p));
+      toast({
+        title: "Sucesso!",
+        description: "Recebimento confirmado.",
+      });
+    }
+  };
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -141,21 +133,21 @@ export default function MyOrders() {
                 <div className="flex items-center space-x-4">
                   <div className="h-16 w-16 bg-gray-100 rounded-lg overflow-hidden">
                     <img 
-                      src={pedido.listings?.image_urls?.[0] || pedido.listings?.image_url || pedido.anuncios?.imagem_url || 'https://via.placeholder.com/150'} 
-                      alt={pedido.listings?.title || pedido.anuncios?.titulo}
+                      src={pedido.listings?.image_urls?.[0] || 'https://via.placeholder.com/150'} 
+                      alt={pedido.listings?.title}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">{pedido.listings?.title || pedido.anuncios?.titulo}</h3>
+                    <h3 className="font-semibold text-gray-900">{pedido.listings?.title}</h3>
                     <p className="text-sm text-gray-500">Pedido #{pedido.id.slice(0, 8)}</p>
-                    <p className="text-xs text-gray-400">Em {new Date(pedido.created_at || pedido.data_criacao).toLocaleDateString('pt-BR')}</p>
+                    <p className="text-xs text-gray-400">Em {new Date(pedido.created_at).toLocaleDateString('pt-BR')}</p>
                   </div>
                 </div>
 
                 <div className="flex flex-col items-end">
                   <span className="text-lg font-bold text-gray-900">
-                    R$ {(pedido.total_price || pedido.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {(pedido.total_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                   <div className="mt-2">
                     {getStatusBadge(pedido.status)}
@@ -167,16 +159,15 @@ export default function MyOrders() {
                     <Button 
                       variant="outline" 
                       className="w-full text-green-600 border-green-200 hover:bg-green-50"
-                      onClick={async () => {
-                        const { table } = pedido;
-                        await supabase.from(table || 'orders').update({ status: 'completed' }).eq('id', pedido.id);
-                        window.location.reload();
-                      }}
+                      onClick={() => handleConfirmReceipt(pedido.id)}
                     >
                       Confirmar Recebimento
                     </Button>
                   )}
-                  {(pedido.status === 'pending' || pedido.status === 'pendente') && (
+                  {tab === 'vendas' && pedido.status === 'pago' && (
+                    <p className="text-xs text-blue-600 font-medium">🛡️ Pagamento retido (Escrow)</p>
+                  )}
+                  {(pedido.status === 'pending' || pedido.status === 'pendente') && tab === 'compras' && (
                     <Button 
                       variant="default" 
                       className="w-full"
