@@ -1,0 +1,26 @@
+services:
+  backend:
+    build: ./service-backend
+    container_name: service-backend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./service-backend/.env
+    volumes:
+      - ./service-backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./service-frontend
+      args:
+        - VITE_SUPABASE_URL=${SUPABASE_URL}
+        - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        - VITE_API_URL=http://localhost:3000
+    env_file:
+      - .env
+    container_name: service-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
