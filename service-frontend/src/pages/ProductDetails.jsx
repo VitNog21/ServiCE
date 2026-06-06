@@ -351,21 +351,27 @@ export default function ProductDetails() {
                 R$ {Number(preco).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
 
+              {produto.status === 'sold' && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+                  <p className="text-red-700 font-bold uppercase tracking-wider text-sm">Este item já foi vendido</p>
+                </div>
+              )}
+
               {/* Botões de Ação (Espaçados e alinhados) */}
               <div className="space-y-3 pt-2">
                 <Button 
                   onClick={handleCompra} 
-                  disabled={comprando}
-                  className="w-full h-14 text-base font-bold bg-[#10B981] hover:bg-[#059669] text-white transition-all rounded-xl shadow-sm"
+                  disabled={comprando || produto.status === 'sold'}
+                  className="w-full h-14 text-base font-bold bg-[#10B981] hover:bg-[#059669] text-white transition-all rounded-xl shadow-sm disabled:bg-slate-300"
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  {comprando ? 'Processando...' : 'Comprar Agora'}
+                  {comprando ? 'Processando...' : produto.status === 'sold' ? 'Vendido' : 'Comprar Agora'}
                 </Button>
                 
                 <Button 
                   onClick={handleStartChat}
-                  disabled={authLoading || currentUser?.id === produto?.owner_id}
-                  className="w-full h-14 text-base font-bold bg-white border-2 border-[#0A847C] text-[#0A847C] hover:bg-[#0A847C] hover:text-white transition-all rounded-xl shadow-sm"
+                  disabled={authLoading || currentUser?.id === produto?.owner_id || produto.status === 'sold'}
+                  className="w-full h-14 text-base font-bold bg-white border-2 border-[#0A847C] text-[#0A847C] hover:bg-[#0A847C] hover:text-white transition-all rounded-xl shadow-sm disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-white"
                 >
                   <MessageCircle className="mr-2 h-5 w-5" />
                   {currentUser?.id === produto?.owner_id ? 'Este é o seu anúncio' : 'Conversar pelo Chat'}

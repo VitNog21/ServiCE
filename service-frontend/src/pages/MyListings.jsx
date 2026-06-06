@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, PauseCircle, Play, Trash2, X } from 'lucide-react';
+import { ArrowLeft, MoreVertical, PauseCircle, Play, Trash2, X, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,15 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/toast';
 import '../css/my-listings.css';
-
-const DELETE_REASON_OPTIONS = [
-  { value: 'sold_elsewhere', label: 'Vendi noutra plataforma' },
-  { value: 'stopped_selling', label: 'Desisti de vender' },
-  { value: 'no_contacts', label: 'Não recebi contactos' },
-  { value: 'other', label: 'Outro motivo' },
-];
 
 const MyListings = () => {
   const navigate = useNavigate();
@@ -30,18 +23,15 @@ const MyListings = () => {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [manageMenuOpenId, setManageMenuOpenId] = useState(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isVendaModalOpen, setIsVendaModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
-  const [deleteReason, setDeleteReason] = useState('sold_elsewhere');
-  const [deleteReasonDetails, setDeleteReasonDetails] = useState('');
-  const [deleteError, setDeleteError] = useState('');
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchMyListings = async () => {
       try {
         setLoading(true);
 
-        // 1. Lógica Híbrida de Autenticação
         const { data: { session } } = await supabase.auth.getSession();
         let currentUser = session?.user;
 
@@ -57,7 +47,6 @@ const MyListings = () => {
 
         setUser(currentUser);
 
-        // 2. Buscar os anúncios DESTE utilizador
         const { data, error } = await supabase
           .from('listings')
           .select(`
@@ -87,36 +76,19 @@ const MyListings = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (!manageMenuOpenId) {
-      return undefined;
-    }
-
+    if (!manageMenuOpenId) return undefined;
     const closeMenu = () => setManageMenuOpenId(null);
-
     window.addEventListener('click', closeMenu);
-
     return () => window.removeEventListener('click', closeMenu);
   }, [manageMenuOpenId]);
 
-  // Função para formatar moeda
   const formatPrice = (price) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
   };
 
-  const closeDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setSelectedListing(null);
-    setDeleteReason('sold_elsewhere');
-    setDeleteReasonDetails('');
-    setDeleteError('');
-  };
-
-  const openDeleteModal = (listing) => {
+  const openVendaModal = (listing) => {
     setSelectedListing(listing);
-    setDeleteReason('sold_elsewhere');
-    setDeleteReasonDetails('');
-    setDeleteError('');
-    setIsDeleteModalOpen(true);
+    setIsVendaModalOpen(true);
     setManageMenuOpenId(null);
   };
 
@@ -126,32 +98,18 @@ const MyListings = () => {
       const { error } = await supabase
         .from('listings')
         .update({ status })
-        .eq('id', listingId)
-        .select();
+        .eq('id', listingId);
 
       if (error) throw error;
       
-      setListings((currentListings) =>
-        currentListings.map((listing) => (
-          listing.id === listingId ? { ...listing, status } : listing
-        ))
+      setListings((current) =>
+        current.map((l) => (l.id === listingId ? { ...l, status } : l))
       );
     } catch (error) {
-      console.error('Erro ao atualizar status do anúncio:', error);
-      alert('Erro ao atualizar anúncio');
+      console.error('Erro ao atualizar status:', error);
     } finally {
       setUpdatingId(null);
     }
-  };
-
-  const pauseListing = async (listingId) => {
-    await updateListingStatus(listingId, 'paused');
-    setManageMenuOpenId(null);
-  };
-
-  const reactivateListing = async (listingId) => {
-    await updateListingStatus(listingId, 'active');
-    setManageMenuOpenId(null);
   };
 
   const deleteListing = async (listingId) => {
@@ -164,107 +122,51 @@ const MyListings = () => {
 
       if (error) throw error;
 
-      setListings((currentListings) => currentListings.filter((listing) => listing.id !== listingId));
+      setListings((current) => current.filter((l) => l.id !== listingId));
+      setIsVendaModalOpen(false);
+      toast({ title: "Sucesso", description: "Anúncio removido." });
     } catch (error) {
-      console.error('Erro ao apagar anúncio:', error);
-      alert('Erro ao apagar anúncio');
+      console.error('Erro ao apagar:', error);
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const confirmDeleteListing = async () => {
-    if (!selectedListing) {
-      return;
-    }
-
-    if (deleteReason === 'other' && !deleteReasonDetails.trim()) {
-      setDeleteError('Descreva o motivo para continuar.');
-      return;
-    }
-
-    setDeleteError('');
-
-    await deleteListing(selectedListing.id);
-    closeDeleteModal();
+  const handleMarkAsSold = async () => {
+    if (!selectedListing) return;
+    await updateListingStatus(selectedListing.id, 'sold');
+    setIsVendaModalOpen(false);
+    toast({ title: "Sucesso!", description: "Anúncio marcado como vendido." });
   };
 
   const activeListings = useMemo(
-    () => listings.filter((listing) => listing.status === 'active' || listing.status === 'paused'),
+    () => listings.filter((l) => l.status === 'active' || l.status === 'paused'),
     [listings]
   );
 
   const soldListings = useMemo(
-    () => listings.filter((listing) => listing.status === 'sold'),
+    () => listings.filter((l) => l.status === 'sold'),
     [listings]
   );
 
-  // Filtrar anúncios por aba
-  const filteredListings = useMemo(() => {
-    if (activeTab === 'ativo') {
-      return activeListings;
-    }
-
-    return soldListings;
-  }, [activeTab, activeListings, soldListings]);
-
-  const getStatusLabel = (status) => {
-    if (status === 'paused') return 'Pausado';
-    if (status === 'sold') return 'Vendido';
-    return 'Ativo';
-  };
-
-  const getStatusClassName = (status) => {
-    if (status === 'paused') return 'status-badge status-paused';
-    if (status === 'sold') return 'status-badge status-sold';
-    return 'status-badge status-active';
-  };
-
-  const handleEditListing = (listingId) => {
-    navigate(`/editar-anuncio/${listingId}`);
-    setManageMenuOpenId(null);
-  };
-
-  const handleMarkAsSold = async (listingId) => {
-    await updateListingStatus(listingId, 'sold');
-    setManageMenuOpenId(null);
-  };
-
-  if (loading) {
-    return (
-      <div className="my-listings-container">
-        <div className="loading-state">A carregar os seus anúncios...</div>
-      </div>
-    );
-  }
+  const filteredListings = activeTab === 'ativo' ? activeListings : soldListings;
 
   return (
     <div className="my-listings-container">
-      <Button
-        type="button"
-        variant="ghost"
-        className="mb-4"
-        onClick={() => navigate(-1)}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar
+      <Button variant="ghost" className="mb-4" onClick={() => navigate(-1)}>
+        <ArrowLeft className="h-4 w-4" /> Voltar
       </Button>
 
       <div className="my-listings-header">
         <div>
           <h1>Meus Anúncios</h1>
-          <p>Faça a gestão dos serviços que você oferece no ServiCE.</p>
+          <p>Faça a gestão dos seus serviços e vendas.</p>
         </div>
-        <Button
-          type="button"
-          className="btn-create-new"
-          onClick={() => navigate('/criar-anuncio')}
-        >
+        <Button className="btn-create-new" onClick={() => navigate('/criar-anuncio')}>
           + Criar Anúncio
         </Button>
       </div>
 
-      {/* Abas */}
       <div className="listings-tabs">
         <button
           className={`tab-button ${activeTab === 'ativo' ? 'active' : ''}`}
@@ -276,25 +178,16 @@ const MyListings = () => {
           className={`tab-button ${activeTab === 'vendidos' ? 'active' : ''}`}
           onClick={() => setActiveTab('vendidos')}
         >
-          Anúncios Vendidos ({soldListings.length})
+          Vendidos/Finalizados ({soldListings.length})
         </button>
       </div>
 
       {filteredListings.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📦</div>
-          <h2>
-            {activeTab === 'ativo'
-              ? 'Você ainda não tem anúncios ativos'
-              : 'Você não tem anúncios vendidos ainda'}
-          </h2>
-          <p>
-            {activeTab === 'ativo'
-              ? 'Comece a oferecer os seus serviços agora mesmo e alcance mais clientes.'
-              : 'Quando você marcar um anúncio como concluído, ele aparecerá aqui.'}
-          </p>
+          <h2>{activeTab === 'ativo' ? 'Sem anúncios ativos' : 'Sem anúncios vendidos'}</h2>
           {activeTab === 'ativo' && (
-            <Button type="button" className="btn-primary" onClick={() => navigate('/criar-anuncio')}>
+            <Button className="btn-primary" onClick={() => navigate('/criar-anuncio')}>
               Criar meu primeiro anúncio
             </Button>
           )}
@@ -303,105 +196,56 @@ const MyListings = () => {
         <div className="listings-grid">
           {filteredListings.map(listing => (
             <div key={listing.id} className="listing-card">
-              <button
-                type="button"
-                className="listing-hero"
-                onClick={() => navigate(`/detalhes/${listing.id}`)}
-              >
+              <div className="listing-hero" onClick={() => navigate(`/detalhes/${listing.id}`)}>
                 <div className="listing-image-wrapper">
-                {listing.image_urls && listing.image_urls.length > 0 ? (
-                  <img src={listing.image_urls[0]} alt={listing.title} className="listing-image" />
-                ) : (
-                  <div className="listing-no-image">Sem Foto</div>
-                )}
-                  {/* Badge de Status */}
-                  <span className={getStatusClassName(listing.status)}>
-                    {getStatusLabel(listing.status)}
+                  {listing.image_urls?.[0] ? (
+                    <img src={listing.image_urls[0]} alt={listing.title} className="listing-image" />
+                  ) : (
+                    <div className="listing-no-image">Sem Foto</div>
+                  )}
+                  <span className={`status-badge status-${listing.status}`}>
+                    {listing.status === 'paused' ? 'Pausado' : listing.status === 'sold' ? 'Vendido' : 'Ativo'}
                   </span>
                 </div>
-
                 <div className="listing-preview">
-                  <span className="listing-category">{listing.category?.name || 'Sem categoria'}</span>
+                  <span className="listing-category">{listing.category?.name}</span>
                   <h3 className="listing-item-title">{listing.title}</h3>
                 </div>
-              </button>
+              </div>
               
               <div className="listing-info">
                 <div className="listing-price">{formatPrice(listing.price)}</div>
-                
-                <div className="listing-actions flex-wrap items-center">
-                  <div className="relative ml-auto">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-11 w-11 rounded-xl border-slate-200 text-slate-600 shadow-sm hover:border-[#0A847C]/30 hover:text-[#0A847C]"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setManageMenuOpenId((current) => (current === listing.id ? null : listing.id));
-                      }}
-                      aria-label={`Gerir anúncio ${listing.title}`}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+                <div className="relative ml-auto">
+                  <Button
+                    variant="outline" size="icon" className="h-10 w-10 rounded-xl"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setManageMenuOpenId(current => current === listing.id ? null : listing.id);
+                    }}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
 
-                    {manageMenuOpenId === listing.id && (
-                      <div
-                        className="absolute bottom-full right-0 z-30 mb-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          type="button"
-                          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                          onClick={() => handleEditListing(listing.id)}
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          type="button"
-                          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                          onClick={() => handleMarkAsSold(listing.id)}
-                          disabled={updatingId === listing.id || listing.status === 'sold'}
-                        >
-                          Marcar como Vendido
-                        </button>
-
-                        {listing.status === 'active' && (
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                            onClick={() => pauseListing(listing.id)}
-                            disabled={updatingId === listing.id}
-                          >
-                            <PauseCircle className="h-4 w-4 text-slate-500" />
-                            Pausar Anúncio
+                  {manageMenuOpenId === listing.id && (
+                    <div className="absolute bottom-full right-0 z-30 mb-2 w-52 overflow-hidden rounded-xl border bg-white p-1 shadow-xl">
+                      <button className="menu-item p-3 w-full text-left hover:bg-slate-50" onClick={() => navigate(`/editar-anuncio/${listing.id}`)}>Editar</button>
+                      
+                      {listing.status === 'active' && (
+                        <>
+                          <button className="menu-item p-3 w-full text-left hover:bg-slate-50 text-emerald-600 font-bold" onClick={() => openVendaModal(listing)}>
+                            <CheckCircle2 className="h-4 w-4 inline mr-2" /> Venda Efetuada
                           </button>
-                        )}
+                          <button className="menu-item p-3 w-full text-left hover:bg-slate-50" onClick={() => updateListingStatus(listing.id, 'paused')}>Pausar</button>
+                        </>
+                      )}
+                      
+                      {listing.status === 'paused' && (
+                        <button className="menu-item p-3 w-full text-left hover:bg-slate-50" onClick={() => updateListingStatus(listing.id, 'active')}>Reativar</button>
+                      )}
 
-                        {listing.status === 'paused' && (
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                            onClick={() => reactivateListing(listing.id)}
-                            disabled={updatingId === listing.id}
-                          >
-                            <Play className="h-4 w-4 text-emerald-600" />
-                            Reativar anúncio
-                          </button>
-                        )}
-
-                        <button
-                          type="button"
-                          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-                          onClick={() => openDeleteModal(listing)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Excluir
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                      <button className="menu-item p-3 w-full text-left hover:bg-red-50 text-red-600" onClick={() => openVendaModal(listing)}>Excluir</button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -409,103 +253,41 @@ const MyListings = () => {
         </div>
       )}
 
-      <Dialog
-        open={isDeleteModalOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeDeleteModal();
-            setManageMenuOpenId(null);
-            return;
-          }
-
-          setIsDeleteModalOpen(true);
-        }}
-      >
-        <DialogContent className="max-w-2xl border-0 p-0 shadow-[0_24px_80px_rgba(15,23,42,0.2)]">
-          <DialogHeader className="border-b border-slate-100 px-6 py-5 sm:px-8">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <DialogTitle className="text-2xl font-semibold text-slate-900">
-                  Por que deseja excluir este anúncio?
-                </DialogTitle>
-                <DialogDescription className="max-w-xl text-sm leading-6 text-slate-500">
-                  Queremos entender o motivo antes de apagar permanentemente o anúncio.
-                  Esta ação não pode ser desfeita.
-                </DialogDescription>
-              </div>
-
-              <DialogClose asChild>
-                <button
-                  type="button"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                  aria-label="Fechar modal"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </DialogClose>
-            </div>
+      {/* MODAL VENDA EFETUADA / EXCLUIR */}
+      <Dialog open={isVendaModalOpen} onOpenChange={setIsVendaModalOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Venda Efetuada?</DialogTitle>
+            <DialogDescription className="text-slate-500">
+              Como deseja finalizar este anúncio? Escolha "Vendido" para manter no seu histórico ou "Remover" para apagar permanentemente.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 px-6 py-6 sm:px-8">
-            <div className="space-y-3">
-              {DELETE_REASON_OPTIONS.map((option) => (
-                <label
-                  key={option.value}
-                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 transition-colors ${
-                    deleteReason === option.value
-                      ? 'border-[#0A847C] bg-[#f1fbfa]'
-                      : 'border-slate-200 bg-white hover:bg-slate-50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="deleteReason"
-                    value={option.value}
-                    checked={deleteReason === option.value}
-                    onChange={(e) => setDeleteReason(e.target.value)}
-                    className="h-4 w-4 border-slate-300 text-[#0A847C] focus:ring-[#0A847C]"
-                  />
-                  <span className="text-sm font-medium text-slate-700">{option.label}</span>
-                </label>
-              ))}
-            </div>
-
-            {deleteReason === 'other' && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Detalhe o motivo</label>
-                <Textarea
-                  value={deleteReasonDetails}
-                  onChange={(e) => setDeleteReasonDetails(e.target.value)}
-                  placeholder="Explique brevemente por que deseja excluir este anúncio..."
-                  className="min-h-[120px] rounded-2xl border-slate-200 bg-slate-50"
-                />
-              </div>
-            )}
-
-            {deleteError && (
-              <p className="text-sm font-medium text-red-600">{deleteError}</p>
-            )}
-          </div>
-
-          <DialogFooter className="flex flex-col-reverse gap-3 border-t border-slate-100 px-6 py-5 sm:flex-row sm:justify-between sm:px-8">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={closeDeleteModal}
-              className="w-full sm:w-auto"
-            >
-              Cancelar
-            </Button>
-
-            <Button
-              type="button"
-              className="w-full gap-2 bg-red-600 text-white hover:bg-red-700 sm:w-auto"
-              onClick={confirmDeleteListing}
+          <div className="grid grid-cols-1 gap-3 py-6">
+            <Button 
+              className="h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex gap-2"
+              onClick={handleMarkAsSold}
               disabled={updatingId === selectedListing?.id}
             >
-              <Trash2 className="h-4 w-4" />
-              {updatingId === selectedListing?.id ? 'A apagar...' : 'Excluir Definitivamente'}
+              <CheckCircle2 className="h-5 w-5" />
+              Marcar como Vendido
             </Button>
+            
+            <Button 
+              variant="outline" 
+              className="h-14 text-red-600 border-red-200 hover:bg-red-50 font-bold rounded-xl flex gap-2"
+              onClick={() => deleteListing(selectedListing.id)}
+              disabled={updatingId === selectedListing?.id}
+            >
+              <Trash2 className="h-5 w-5" />
+              Remover Definitivamente
+            </Button>
+          </div>
+
+          <DialogFooter className="flex justify-center border-t border-slate-100 pt-4">
+            <DialogClose asChild>
+              <Button variant="ghost" className="text-slate-400">Cancelar</Button>
+            </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
