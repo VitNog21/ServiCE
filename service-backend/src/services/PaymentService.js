@@ -10,24 +10,45 @@ const client = new MercadoPagoConfig({
 export const createPaymentPreference = async (order) => {
   const preference = new Preference(client);
 
+  const frontendUrl = (process.env.FRONTEND_URL && process.env.FRONTEND_URL !== 'INSIRA_O_VALOR_AQUI') 
+    ? process.env.FRONTEND_URL.replace(/\/$/, '') 
+    : 'http://localhost:5173';
+
+  const webhookUrl = (process.env.WEBHOOK_URL && process.env.WEBHOOK_URL !== 'INSIRA_O_VALOR_AQUI')
+    ? process.env.WEBHOOK_URL.replace(/\/$/, '')
+    : null;
+
   const body = {
     items: [
       {
         id: String(order.listing_id || order.anuncio_id),
-        title: `ServiCE Order #${order.id.slice(0,8)}`,
-        unit_price: Number(order.total_price || order.valor_total),
+        title: order.listings?.title || `Pedido #${order.id.slice(0,8)}`,
+        unit_price: parseFloat(Number(order.total_price || order.valor_total).toFixed(2)),
         quantity: 1,
-        currency_id: 'BRL'
+        currency_id: 'BRL',
+        description: 'Serviço contratado via ServiCE'
       }
     ],
-    back_urls: {
-      success: 'http://localhost:5173/success',
-      failure: 'http://localhost:5173/failure',
-      pending: 'http://localhost:5173/failure'
+    payer: {
+      email: 'test_user_123@testuser.com', // Facilitador para Sandbox
+      identification: {
+        type: 'CPF',
+        number: '12345678909'
+      }
     },
-    notification_url: `${process.env.WEBHOOK_URL}/api/payments/webhook`,
+    back_urls: {
+      success: `${frontendUrl}/sucesso`,
+      failure: `${frontendUrl}/falha`,
+      pending: `${frontendUrl}/meus-pedidos`
+    },
+    auto_return: 'approved',
     external_reference: String(order.id)
   };
+
+  // Só adiciona notification_url se for uma URL válida (contém http)
+  if (webhookUrl && webhookUrl.startsWith('http')) {
+    body.notification_url = `${webhookUrl}/api/payments/webhook`;
+  }
 
   try {
     console.log("📤 Sending preference to MP:", JSON.stringify(body, null, 2));

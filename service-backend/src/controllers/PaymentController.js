@@ -9,7 +9,7 @@ export const PaymentController = {
 
     try {
       const { data: order, error } = await runOnOrderTables((orderTable) =>
-        supabase.from(orderTable).select('*').eq('id', orderId).single()
+        supabase.from(orderTable).select('*, listings(title)').eq('id', orderId).single()
       );
 
       if (error || !order) {
@@ -30,23 +30,33 @@ export const PaymentController = {
   },
 
   async webhook(req, res) {
-    const { type, data } = req.body;
+    const { query, body } = req;
+    const type = body.type || query.topic || query.type;
+    const paymentId = body.data?.id || query.id;
 
-    if (type === 'payment') {
+    if (type === 'payment' || type === 'payment.updated') {
       try {
-        const paymentDetails = await PaymentService.getPaymentDetails(data.id);
+        if (!paymentId) return res.status(200).send('OK');
+
+        const paymentDetails = await PaymentService.getPaymentDetails(paymentId);
         const orderId = paymentDetails.external_reference;
 
         if (paymentDetails.status === 'approved') {
-          const { error } = await runOnOrderTables((orderTable) =>
-            supabase.from(orderTable).update({ status: 'paid' }).eq('id', orderId)
+          // 1. Atualizar status do pedido para 'pago'
+          const { data: orderData } = await runOnOrderTables((orderTable) =>
+            supabase.from(orderTable).update({ status: 'pago' }).eq('id', orderId).select('listing_id, seller_id').single()
           );
 
-          if (error) {
-            throw error;
+          // 2. Marcar anúncio como VENDIDO
+          if (orderData?.listing_id) {
+            await supabase.from('listings').update({ status: 'sold' }).eq('id', orderData.listing_id);
+            
+            // 3. Incrementar contador de vendas do vendedor
+            const { data: sellerProfile } = await supabase.from('profiles').select('sales_count').eq('id', orderData.seller_id).single();
+            await supabase.from('profiles').update({ sales_count: (sellerProfile?.sales_count || 0) + 1 }).eq('id', orderData.seller_id);
+            
+            console.log(`✅ Order ${orderId} paid. Listing ${orderData.listing_id} marked as SOLD.`);
           }
-
-          console.log(`Order ${orderId} updated to paid via webhook.`);
         }
       } catch (error) {
         console.error('Error processing webhook:', error);
