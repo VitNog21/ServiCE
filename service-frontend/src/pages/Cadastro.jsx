@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
-import AddressAutocomplete from '@/components/AddressAutocomplete'; // <-- Importado o componente de busca de endereço
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import '../css/login.css'; 
+import '../css/login.css'; // Usamos o mesmo CSS do Login para manter o padrão visual!
 
 const Cadastro = () => {
   const navigate = useNavigate();
@@ -14,33 +11,11 @@ const Cadastro = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Novos estados para a Localização
-  const [location, setLocation] = useState('');
-  const [selectedCoordinates, setSelectedCoordinates] = useState({ lat: null, lon: null });
-
-  // Handlers para o componente de endereço
-  const handleLocationInputChange = (addressText) => {
-    setLocation(addressText);
-    setSelectedCoordinates({ lat: null, lon: null });
-  };
-
-  const handleLocationSelect = ({ display_name, lat, lon }) => {
-    setLocation(display_name);
-    setSelectedCoordinates({ lat, lon });
-  };
-
   // 1. Cadastro com Email e Senha (VIA SUPABASE)
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: '', text: '' });
-
-    // VALIDAÇÃO OBRIGATÓRIA DA LOCALIZAÇÃO
-    if (!selectedCoordinates.lat || !selectedCoordinates.lon) {
-      setMessage({ type: 'error', text: 'Por favor, busque e selecione uma localidade válida na lista.' });
-      setLoading(false);
-      return;
-    }
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -48,35 +23,27 @@ const Cadastro = () => {
         password,
         options: {
           data: {
-            full_name: name,
-            name: name,
-            location: location, // Guarda a localização nos metadados
-            lat: selectedCoordinates.lat,
-            lon: selectedCoordinates.lon
+            full_name: name, // Guarda o nome nos metadados para o Perfil usar depois
+            name: name
           }
         }
       });
 
       if (error) throw error;
 
+      // Se o email já existir no Supabase, ele não dá erro diretamente (por segurança), 
+      // mas devolve um array de identidades vazio. Vamos tratar isso:
       if (data?.user && data.user.identities && data.user.identities.length === 0) {
         setMessage({ type: 'error', text: 'Este email já está cadastrado. Faça login.' });
         setLoading(false);
         return;
       }
 
-      // Tenta forçar a atualização direta na tabela profiles (caso a trigger do banco demore)
-      if (data?.user) {
-        await supabase.from('profiles').update({
-          location: location,
-          lat: selectedCoordinates.lat,
-          lon: selectedCoordinates.lon
-        }).eq('id', data.user.id);
-      }
-
       setMessage({ type: 'success', text: 'Conta criada com sucesso! A redirecionar...' });
       
+      // Limpeza de segurança
       localStorage.removeItem('service_user');
+
       setTimeout(() => navigate('/'), 2000);
     } catch (error) {
       console.error('Erro no cadastro:', error.message);
@@ -86,7 +53,7 @@ const Cadastro = () => {
     }
   };
 
-  // 2. Cadastro com Google
+  // 2. Cadastro com Google (Usa a mesma função do Login)
   const handleGoogleRegister = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -105,14 +72,14 @@ const Cadastro = () => {
 
   return (
     <div className="login-container">
-      <div className="login-card" style={{ marginTop: '40px', marginBottom: '40px' }}>
+      <div className="login-card">
         
+        {/* LOGO DO SITE */}
         <img 
           src="/assets/logo_service.png" 
           alt="ServiCE" 
           className="login-logo" 
           onClick={() => navigate('/')}
-          style={{ cursor: 'pointer' }}
         />
         
         <h2 className="login-title">Crie sua conta</h2>
@@ -124,45 +91,31 @@ const Cadastro = () => {
         <form onSubmit={handleRegister}>
           <div className="input-group">
             <label>Nome Completo</label>
-            <Input
+            <input 
               type="text" 
               value={name} 
               onChange={(e) => setName(e.target.value)} 
               required 
               disabled={loading}
               placeholder="João Silva"
-              className="h-11"
-            />
-          </div>
-
-          {/* NOVO CAMPO: LOCALIZAÇÃO */}
-          <div className="input-group">
-            <label>Sua Localização (Obrigatório)</label>
-            <AddressAutocomplete
-              value={location}
-              onChange={handleLocationInputChange}
-              onAddressSelect={handleLocationSelect}
-              disabled={loading}
-              placeholder="Ex: Fortaleza, Ceará"
             />
           </div>
 
           <div className="input-group">
             <label>Email</label>
-            <Input
+            <input 
               type="email" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
               required 
               disabled={loading}
               placeholder="seu@email.com"
-              className="h-11"
             />
           </div>
 
           <div className="input-group">
             <label>Senha</label>
-            <Input
+            <input 
               type="password" 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
@@ -170,18 +123,18 @@ const Cadastro = () => {
               disabled={loading}
               placeholder="Mínimo 6 caracteres"
               minLength="6"
-              className="h-11"
             />
           </div>
 
-          <Button type="submit" className="btn-primary" disabled={loading}>
+          <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? 'A criar conta...' : 'Cadastrar'}
-          </Button>
+          </button>
         </form>
 
         <div className="divider">ou</div>
 
-        <Button type="button" variant="outline" className="btn-google" onClick={handleGoogleRegister} disabled={loading}>
+        {/* BOTÃO GOOGLE COM SVG OFICIAL */}
+        <button type="button" className="btn-google" onClick={handleGoogleRegister} disabled={loading}>
           <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style={{ width: '20px', height: '20px' }}>
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
             <path fill="#4285F4" d="M46.64 24.32c0-1.63-.15-3.26-.44-4.84H24v9.03h12.72c-.53 2.84-2.14 5.25-4.59 6.81l7.41 5.74c4.35-4.01 6.81-9.92 6.81-16.74z"></path>
@@ -190,7 +143,7 @@ const Cadastro = () => {
             <path fill="none" d="M0 0h48v48H0z"></path>
           </svg>
           Cadastrar com Google
-        </Button>
+        </button>
 
         <p className="register-link">
           Já tem conta? <Link to="/login">Entre aqui</Link>

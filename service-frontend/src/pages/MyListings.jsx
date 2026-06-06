@@ -13,7 +13,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/toast';
 import '../css/my-listings.css';
 
 const DELETE_REASON_OPTIONS = [
@@ -31,9 +30,11 @@ const MyListings = () => {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [manageMenuOpenId, setManageMenuOpenId] = useState(null);
-  const [isVendaModalOpen, setIsVendaModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
-  const toast = useToast();
+  const [deleteReason, setDeleteReason] = useState('sold_elsewhere');
+  const [deleteReasonDetails, setDeleteReasonDetails] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     const fetchMyListings = async () => {
@@ -102,9 +103,20 @@ const MyListings = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
   };
 
-  const openVendaModal = (listing) => {
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setSelectedListing(null);
+    setDeleteReason('sold_elsewhere');
+    setDeleteReasonDetails('');
+    setDeleteError('');
+  };
+
+  const openDeleteModal = (listing) => {
     setSelectedListing(listing);
-    setIsVendaModalOpen(true);
+    setDeleteReason('sold_elsewhere');
+    setDeleteReasonDetails('');
+    setDeleteError('');
+    setIsDeleteModalOpen(true);
     setManageMenuOpenId(null);
   };
 
@@ -114,7 +126,8 @@ const MyListings = () => {
       const { error } = await supabase
         .from('listings')
         .update({ status })
-        .eq('id', listingId);
+        .eq('id', listingId)
+        .select();
 
       if (error) throw error;
       
@@ -125,10 +138,20 @@ const MyListings = () => {
       );
     } catch (error) {
       console.error('Erro ao atualizar status do anúncio:', error);
-      toast({ title: "Erro", description: "Não foi possível atualizar o anúncio.", variant: "destructive" });
+      alert('Erro ao atualizar anúncio');
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  const pauseListing = async (listingId) => {
+    await updateListingStatus(listingId, 'paused');
+    setManageMenuOpenId(null);
+  };
+
+  const reactivateListing = async (listingId) => {
+    await updateListingStatus(listingId, 'active');
+    setManageMenuOpenId(null);
   };
 
   const deleteListing = async (listingId) => {
@@ -142,21 +165,28 @@ const MyListings = () => {
       if (error) throw error;
 
       setListings((currentListings) => currentListings.filter((listing) => listing.id !== listingId));
-      setIsVendaModalOpen(false);
-      toast({ title: "Sucesso", description: "Anúncio removido permanentemente." });
     } catch (error) {
       console.error('Erro ao apagar anúncio:', error);
-      toast({ title: "Erro", description: "Não foi possível apagar o anúncio.", variant: "destructive" });
+      alert('Erro ao apagar anúncio');
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const handleMarkAsSold = async () => {
-    if (!selectedListing) return;
-    await updateListingStatus(selectedListing.id, 'sold');
-    setIsVendaModalOpen(false);
-    toast({ title: "Sucesso!", description: "Anúncio marcado como vendido." });
+  const confirmDeleteListing = async () => {
+    if (!selectedListing) {
+      return;
+    }
+
+    if (deleteReason === 'other' && !deleteReasonDetails.trim()) {
+      setDeleteError('Descreva o motivo para continuar.');
+      return;
+    }
+
+    setDeleteError('');
+
+    await deleteListing(selectedListing.id);
+    closeDeleteModal();
   };
 
   const activeListings = useMemo(
@@ -236,22 +266,18 @@ const MyListings = () => {
 
       {/* Abas */}
       <div className="listings-tabs">
-        <Button
-          type="button"
-          variant="ghost"
+        <button
           className={`tab-button ${activeTab === 'ativo' ? 'active' : ''}`}
           onClick={() => setActiveTab('ativo')}
         >
           Meus Anúncios ({activeListings.length})
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
+        </button>
+        <button
           className={`tab-button ${activeTab === 'vendidos' ? 'active' : ''}`}
           onClick={() => setActiveTab('vendidos')}
         >
           Anúncios Vendidos ({soldListings.length})
-        </Button>
+        </button>
       </div>
 
       {filteredListings.length === 0 ? (
@@ -277,9 +303,8 @@ const MyListings = () => {
         <div className="listings-grid">
           {filteredListings.map(listing => (
             <div key={listing.id} className="listing-card">
-              <Button
+              <button
                 type="button"
-                variant="ghost"
                 className="listing-hero"
                 onClick={() => navigate(`/detalhes/${listing.id}`)}
               >
@@ -299,7 +324,7 @@ const MyListings = () => {
                   <span className="listing-category">{listing.category?.name || 'Sem categoria'}</span>
                   <h3 className="listing-item-title">{listing.title}</h3>
                 </div>
-              </Button>
+              </button>
               
               <div className="listing-info">
                 <div className="listing-price">{formatPrice(listing.price)}</div>
@@ -325,60 +350,55 @@ const MyListings = () => {
                         className="absolute bottom-full right-0 z-30 mb-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <Button
+                        <button
                           type="button"
-                          variant="ghost"
                           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                           onClick={() => handleEditListing(listing.id)}
                         >
                           Editar
-                        </Button>
+                        </button>
 
-                        <Button
+                        <button
                           type="button"
-                          variant="ghost"
-                          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-emerald-600 font-bold transition-colors hover:bg-slate-50"
-                          onClick={() => openVendaModal(listing)}
+                          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                          onClick={() => handleMarkAsSold(listing.id)}
                           disabled={updatingId === listing.id || listing.status === 'sold'}
                         >
-                          <CheckCircle2 className="h-4 w-4" /> Venda Efetuada
-                        </Button>
+                          Marcar como Vendido
+                        </button>
 
                         {listing.status === 'active' && (
-                          <Button
+                          <button
                             type="button"
-                            variant="ghost"
                             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                             onClick={() => pauseListing(listing.id)}
                             disabled={updatingId === listing.id}
                           >
                             <PauseCircle className="h-4 w-4 text-slate-500" />
                             Pausar Anúncio
-                          </Button>
+                          </button>
                         )}
 
                         {listing.status === 'paused' && (
-                          <Button
+                          <button
                             type="button"
-                            variant="ghost"
                             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                             onClick={() => reactivateListing(listing.id)}
                             disabled={updatingId === listing.id}
                           >
                             <Play className="h-4 w-4 text-emerald-600" />
                             Reativar anúncio
-                          </Button>
+                          </button>
                         )}
 
-                        <Button
+                        <button
                           type="button"
-                          variant="ghost"
                           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-                          onClick={() => openVendaModal(listing)}
+                          onClick={() => openDeleteModal(listing)}
                         >
                           <Trash2 className="h-4 w-4" />
                           Excluir
-                        </Button>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -389,41 +409,103 @@ const MyListings = () => {
         </div>
       )}
 
-      {/* MODAL VENDA EFETUADA / EXCLUIR (Requirement: Seção 3 do Escopo) */}
-      <Dialog open={isVendaModalOpen} onOpenChange={setIsVendaModalOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Venda Efetuada?</DialogTitle>
-            <DialogDescription className="text-slate-500">
-              Como deseja finalizar este anúncio? Escolha "Vendido" para manter no seu histórico ou "Remover" para apagar permanentemente.
-            </DialogDescription>
+      <Dialog
+        open={isDeleteModalOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeDeleteModal();
+            setManageMenuOpenId(null);
+            return;
+          }
+
+          setIsDeleteModalOpen(true);
+        }}
+      >
+        <DialogContent className="max-w-2xl border-0 p-0 shadow-[0_24px_80px_rgba(15,23,42,0.2)]">
+          <DialogHeader className="border-b border-slate-100 px-6 py-5 sm:px-8">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <DialogTitle className="text-2xl font-semibold text-slate-900">
+                  Por que deseja excluir este anúncio?
+                </DialogTitle>
+                <DialogDescription className="max-w-xl text-sm leading-6 text-slate-500">
+                  Queremos entender o motivo antes de apagar permanentemente o anúncio.
+                  Esta ação não pode ser desfeita.
+                </DialogDescription>
+              </div>
+
+              <DialogClose asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Fechar modal"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </DialogClose>
+            </div>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 gap-3 py-6">
-            <Button 
-              className="h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex gap-2"
-              onClick={handleMarkAsSold}
-              disabled={updatingId === selectedListing?.id}
-            >
-              <CheckCircle2 className="h-5 w-5" />
-              Marcar como Vendido
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="h-14 text-red-600 border-red-200 hover:bg-red-50 font-bold rounded-xl flex gap-2"
-              onClick={() => deleteListing(selectedListing.id)}
-              disabled={updatingId === selectedListing?.id}
-            >
-              <Trash2 className="h-5 w-5" />
-              Remover Definitivamente
-            </Button>
+          <div className="space-y-6 px-6 py-6 sm:px-8">
+            <div className="space-y-3">
+              {DELETE_REASON_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 transition-colors ${
+                    deleteReason === option.value
+                      ? 'border-[#0A847C] bg-[#f1fbfa]'
+                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="deleteReason"
+                    value={option.value}
+                    checked={deleteReason === option.value}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    className="h-4 w-4 border-slate-300 text-[#0A847C] focus:ring-[#0A847C]"
+                  />
+                  <span className="text-sm font-medium text-slate-700">{option.label}</span>
+                </label>
+              ))}
+            </div>
+
+            {deleteReason === 'other' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Detalhe o motivo</label>
+                <Textarea
+                  value={deleteReasonDetails}
+                  onChange={(e) => setDeleteReasonDetails(e.target.value)}
+                  placeholder="Explique brevemente por que deseja excluir este anúncio..."
+                  className="min-h-[120px] rounded-2xl border-slate-200 bg-slate-50"
+                />
+              </div>
+            )}
+
+            {deleteError && (
+              <p className="text-sm font-medium text-red-600">{deleteError}</p>
+            )}
           </div>
 
-          <DialogFooter className="flex justify-center border-t border-slate-100 pt-4">
-            <DialogClose asChild>
-              <Button variant="ghost" className="text-slate-400">Cancelar</Button>
-            </DialogClose>
+          <DialogFooter className="flex flex-col-reverse gap-3 border-t border-slate-100 px-6 py-5 sm:flex-row sm:justify-between sm:px-8">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={closeDeleteModal}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              type="button"
+              className="w-full gap-2 bg-red-600 text-white hover:bg-red-700 sm:w-auto"
+              onClick={confirmDeleteListing}
+              disabled={updatingId === selectedListing?.id}
+            >
+              <Trash2 className="h-4 w-4" />
+              {updatingId === selectedListing?.id ? 'A apagar...' : 'Excluir Definitivamente'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

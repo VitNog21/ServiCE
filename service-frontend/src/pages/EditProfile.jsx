@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import '../css/profile.css';
 
@@ -232,7 +231,7 @@ const EditProfile = () => {
 
         <div className="profile-header">
           <h1 className="profile-title">Editar Perfil</h1>
-          <Button type="button" className="btn-logout" onClick={handleLogout}>Sair</Button>
+          <button type="button" className="btn-logout" onClick={handleLogout}>Sair</button>
         </div>
 
         {message.text && (
@@ -278,11 +277,10 @@ const EditProfile = () => {
             <h2 className="section-title">Informações Pessoais</h2>
             <div className="input-group">
               <label htmlFor="full_name">Nome Completo</label>
-              <Input
+              <input 
                 type="text" id="full_name" name="full_name"
                 value={formData.full_name} onChange={handleFormChange}
                 placeholder="Seu nome completo"
-                className="h-11"
               />
             </div>
             <div className="input-group">
@@ -325,12 +323,12 @@ const EditProfile = () => {
 
           {/* AÇÕES FINAIS */}
           <div className="profile-actions">
-            <Button type="submit" className="btn-primary" disabled={loadingUpload || savingProfile}>
+            <button type="submit" className="btn-primary" disabled={loadingUpload || savingProfile}>
               {savingProfile ? 'A salvar...' : 'Salvar Perfil'}
-            </Button>
-            <Button type="button" variant="outline" className="btn-secondary" onClick={() => navigate('/')}>
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => navigate('/')}>
               Voltar ao Início
-            </Button>
+            </button>
           </div>
         </form>
       </div>

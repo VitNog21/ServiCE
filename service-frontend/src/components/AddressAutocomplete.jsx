@@ -9,7 +9,6 @@ function AddressAutocomplete({ value, onChange, onAddressSelect, disabled = fals
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState('');
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const rootRef = useRef(null);
 
   useEffect(() => {
@@ -29,7 +28,6 @@ function AddressAutocomplete({ value, onChange, onAddressSelect, disabled = fals
     if (query.length < MIN_QUERY_LENGTH) {
       setSuggestions([]);
       setIsOpen(false);
-      setHighlightedIndex(-1);
       setError('');
       return;
     }
@@ -60,13 +58,11 @@ function AddressAutocomplete({ value, onChange, onAddressSelect, disabled = fals
 
         const data = await response.json();
         setSuggestions(Array.isArray(data) ? data : []);
-        setHighlightedIndex(-1);
         setIsOpen(true);
       } catch (fetchError) {
         if (fetchError.name !== 'AbortError') {
           setError('Nao foi possivel carregar sugestoes agora.');
           setSuggestions([]);
-          setHighlightedIndex(-1);
           setIsOpen(true);
         }
       } finally {
@@ -93,36 +89,6 @@ function AddressAutocomplete({ value, onChange, onAddressSelect, disabled = fals
     });
 
     setIsOpen(false);
-    setHighlightedIndex(-1);
-  };
-
-  const handleInputKeyDown = (event) => {
-    if (!isOpen || suggestions.length === 0) {
-      return;
-    }
-
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      setHighlightedIndex((current) => (current + 1) % suggestions.length);
-      return;
-    }
-
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      setHighlightedIndex((current) => (current <= 0 ? suggestions.length - 1 : current - 1));
-      return;
-    }
-
-    if (event.key === 'Enter' && highlightedIndex >= 0) {
-      event.preventDefault();
-      handleSelect(suggestions[highlightedIndex]);
-      return;
-    }
-
-    if (event.key === 'Escape') {
-      setIsOpen(false);
-      setHighlightedIndex(-1);
-    }
   };
 
   return (
@@ -134,23 +100,14 @@ function AddressAutocomplete({ value, onChange, onAddressSelect, disabled = fals
           onChange(event.target.value);
           setError('');
         }}
-        onKeyDown={handleInputKeyDown}
         placeholder="Digite rua, bairro ou cidade"
         autoComplete="off"
         disabled={disabled}
         required={required}
-        role="combobox"
-        aria-expanded={isOpen}
-        aria-controls="address-autocomplete-list"
-        aria-autocomplete="list"
       />
 
       {isOpen && (
-        <div
-          id="address-autocomplete-list"
-          role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-2 max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
-        >
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
           {isLoading && (
             <div className="px-3 py-2 text-sm text-slate-500">Buscando enderecos...</div>
           )}
@@ -163,25 +120,16 @@ function AddressAutocomplete({ value, onChange, onAddressSelect, disabled = fals
             <div className="px-3 py-2 text-sm text-slate-500">Nenhum endereco encontrado.</div>
           )}
 
-          {!isLoading && !error && suggestions.map((item, index) => {
-            const isHighlighted = index === highlightedIndex;
-
-            return (
-              <button
-                key={`${item.place_id}-${item.lat}-${item.lon}`}
-                type="button"
-                role="option"
-                aria-selected={isHighlighted}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                onClick={() => handleSelect(item)}
-                className={`block w-full border-b border-slate-100 px-3 py-2 text-left text-sm transition-colors ${
-                  isHighlighted ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                {item.display_name}
-              </button>
-            );
-          })}
+          {!isLoading && !error && suggestions.map((item) => (
+            <button
+              key={`${item.place_id}-${item.lat}-${item.lon}`}
+              type="button"
+              onClick={() => handleSelect(item)}
+              className="block w-full border-b border-slate-100 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+            >
+              {item.display_name}
+            </button>
+          ))}
         </div>
       )}
     </div>

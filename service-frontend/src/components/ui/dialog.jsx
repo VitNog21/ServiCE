@@ -1,5 +1,4 @@
 import { cloneElement, createContext, isValidElement, useContext, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 
 import { X } from 'lucide-react';
 
@@ -24,40 +23,22 @@ function Dialog({ open, onOpenChange, children }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, onOpenChange]);
 
-  useEffect(() => {
-    if (!open) {
-      return undefined;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open]);
-
   if (!open) {
     return null;
   }
 
-  if (typeof document === 'undefined') {
-    return null;
-  }
-
-  return createPortal(
+  return (
     <DialogContext.Provider value={{ onOpenChange }}>
-      <div className="fixed inset-0 z-[1200] flex items-start justify-center overflow-y-auto p-4 sm:items-center sm:p-6">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <button
           type="button"
           aria-label="Fechar diálogo"
-          className="absolute inset-0 cursor-pointer bg-slate-950/55 backdrop-blur-[2px]"
+          className="absolute inset-0 cursor-default bg-slate-950/55 backdrop-blur-[2px]"
           onClick={() => onOpenChange(false)}
         />
-        <div className="relative z-10 my-auto w-full">{children}</div>
+        <div className="relative z-10 w-full">{children}</div>
       </div>
-    </DialogContext.Provider>,
-    document.body
+    </DialogContext.Provider>
   );
 }
 
@@ -66,7 +47,7 @@ function DialogContent({ className, children }) {
     <div
       role="dialog"
       aria-modal="true"
-      className={cn('mx-auto w-full max-w-2xl max-h-[calc(100vh-2rem)] overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200', className)}
+      className={cn('mx-auto w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200', className)}
       onClick={(event) => event.stopPropagation()}
     >
       {children}

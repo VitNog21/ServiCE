@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import '../css/login.css';
 
 const Login = () => {
@@ -79,39 +77,37 @@ const Login = () => {
         <form onSubmit={handleLogin}>
           <div className="input-group">
             <label>Email</label>
-            <Input
+            <input 
               type="email" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
               required 
               disabled={loading}
               placeholder="seu@email.com"
-              className="h-11"
             />
           </div>
 
           <div className="input-group">
             <label>Senha</label>
-            <Input
+            <input 
               type="password" 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
               required 
               disabled={loading}
               placeholder="••••••••"
-              className="h-11"
             />
           </div>
 
-          <Button type="submit" className="btn-primary" disabled={loading}>
+          <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? 'A entrar...' : 'Entrar'}
-          </Button>
+          </button>
         </form>
 
         <div className="divider">ou</div>
 
         {/* BOTÃO GOOGLE COM SVG OFICIAL */}
-        <Button type="button" variant="outline" className="btn-google" onClick={handleGoogleLogin} disabled={loading}>
+        <button type="button" className="btn-google" onClick={handleGoogleLogin} disabled={loading}>
           <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style={{ width: '20px', height: '20px' }}>
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
             <path fill="#4285F4" d="M46.64 24.32c0-1.63-.15-3.26-.44-4.84H24v9.03h12.72c-.53 2.84-2.14 5.25-4.59 6.81l7.41 5.74c4.35-4.01 6.81-9.92 6.81-16.74z"></path>
@@ -120,7 +116,7 @@ const Login = () => {
             <path fill="none" d="M0 0h48v48H0z"></path>
           </svg>
           Entrar com Google
-        </Button>
+        </button>
 
         <p className="register-link">
           Não tem conta? <Link to="/cadastro">Cadastre-se aqui</Link>

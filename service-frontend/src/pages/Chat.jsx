@@ -3,8 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import '../css/chat.css';
 import { ArrowLeft, Send, Loader } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/toast';
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -19,7 +17,6 @@ export default function Chat() {
   const [currentUser, setCurrentUser] = useState(null);
   const [receiverData, setReceiverData] = useState(null);
   const [listingData, setListingData] = useState(null);
-  const toast = useToast();
 
   // ==========================================
   // 1. OBTER USUÁRIO AUTENTICADO
@@ -307,7 +304,7 @@ export default function Chat() {
       
     } catch (err) {
       console.error('Erro ao processar envio:', err);
-      toast.error('Erro ao enviar mensagem. Tente novamente.');
+      alert('Erro ao enviar mensagem. Tente novamente.');
     } finally {
       setSending(false);
     }
@@ -356,15 +353,13 @@ export default function Chat() {
       <div className="chat-sidebar">
         <div className="chat-sidebar-header">
           <h2>Mensagens</h2>
-          <Button
-            type="button"
-            variant="ghost"
+          <button
             className="chat-back-btn"
             onClick={() => navigate('/')}
             title="Voltar"
           >
             <ArrowLeft size={20} />
-          </Button>
+          </button>
         </div>
 
         <div className="chat-conversations-list">
@@ -491,9 +486,8 @@ export default function Chat() {
                 onChange={(e) => setMessageInput(e.target.value)}
                 disabled={sending}
               />
-              <Button
+              <button
                 type="submit"
-                variant="unstyled"
                 className="chat-send-btn"
                 disabled={sending || !messageInput.trim()}
                 title={sending ? 'Enviando...' : 'Enviar'}
@@ -503,7 +497,7 @@ export default function Chat() {
                 ) : (
                   <Send size={20} />
                 )}
-              </Button>
+              </button>
             </form>
           </>
         )}

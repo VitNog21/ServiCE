@@ -11,7 +11,6 @@ body {
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: #F5F7F9;
   color: #333;
-  overflow-x: hidden; /* Evita rolagem horizontal acidental na tela inteira */
 }
 
 #root {
@@ -21,31 +20,50 @@ body {
   flex-direction: column;
 }
 
-/* --- HEADER AJUSTADO --- */
+/* --- HEADER --- */
 .main-header {
   background-color: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  padding: 0 4%; /* Respiro lateral */
+  padding: 0 5%;
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: sticky;
   top: 0;
   z-index: 1000;
-  height: 80px; /* Altura ideal para acomodar a barra de busca e a foto */
-  gap: 20px;
+  height: 70px;
 }
 
 .header-logo {
-  height: 32px;
+  height: 35px;
   cursor: pointer;
 }
 
 .header-search {
   flex: 1;
-  max-width: 800px;
-  margin: 0 auto;
-  position: relative;
+  max-width: 500px;
+  display: flex;
+  margin: 0 20px;
+  border: 2px solid #0A847C;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+
+.header-search input {
+  flex: 1;
+  padding: 10px 15px;
+  border: none;
+  outline: none;
+  font-size: 15px;
+}
+
+.header-search button {
+  background-color: #0A847C;
+  color: white;
+  border: none;
+  padding: 0 20px;
+  cursor: pointer;
 }
 
 /* --- NAVEGAÇÃO --- */
@@ -55,12 +73,34 @@ body {
   gap: 20px;
 }
 
-/* --- ÍCONE DE PERFIL (CORRIGE O BUG DA FOTO GIGANTE) --- */
+.btn-login-header {
+  text-decoration: none;
+  color: #0A847C;
+  border: 2px solid #0A847C;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.btn-my-ads {
+  text-decoration: none;
+  color: #0A3B66;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* --- ÍCONE DE PERFIL --- */
 .user-profile-icon {
-  width: 44px;
-  height: 44px;
-  background-color: #e2e8f0;
-  color: #333;
+  width: 40px;
+  height: 40px;
+  background-color: #0A3B66;
+  color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -68,163 +108,144 @@ body {
   font-size: 20px;
   cursor: pointer;
   position: relative;
-  border: 2px solid #e2e8f0;
-  transition: border-color 0.2s;
 }
 
-.user-profile-icon:hover {
-  border-color: #0A847C;
-}
-
-.user-profile-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-}
-
-/* --- DROPDOWN DO PERFIL --- */
+/* --- DROPDOWN (ACIONADO POR CLIQUE) --- */
 .dropdown-menu {
-  display: none;
+  display: none; /* SEMPRE ESCONDIDO POR PADRÃO */
   position: absolute;
-  top: 55px;
+  top: 50px;
   right: 0;
   background-color: white;
   min-width: 200px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  border-radius: 12px;
-  padding: 8px 0;
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  border-radius: 8px;
+  padding: 10px 0;
+  border: 1px solid #eee;
   z-index: 1001;
+  cursor: default;
 }
 
-.dropdown-menu.active { 
-  display: block; 
+/* REMOVI O HOVER! Agora ele só abre com esta classe que o React coloca */
+.dropdown-menu.active {
+  display: block;
 }
 
 .dropdown-header {
-  padding: 12px 16px;
+  padding: 10px 15px;
 }
 
 .user-email-text {
-  font-size: 12px;
-  color: #64748b;
+  font-size: 11px;
+  color: #888;
   display: block;
-  word-break: break-all;
 }
 
 .dropdown-item {
   display: block;
   width: 100%;
-  padding: 10px 16px;
+  padding: 12px 15px;
   text-align: left;
   text-decoration: none;
-  color: #475569;
+  color: #333;
   font-size: 14px;
   border: none;
   background: none;
   cursor: pointer;
-  transition: background-color 0.2s;
 }
 
-.dropdown-item:hover { 
-  background-color: #f8fafc; 
-  color: #0A847C; 
-}
-
-.logout-item { 
-  color: #ef4444; 
-}
-
-.logout-item:hover { 
-  color: #dc2626; 
-  background-color: #fef2f2; 
-}
-
-/* --- BOTÃO ENTRAR / CADASTRAR --- */
-.btn-login-header {
-  text-decoration: none;
+.dropdown-item:hover {
+  background-color: #f5f7f9;
   color: #0A847C;
-  border: 2px solid #0A847C;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  transition: all 0.2s;
 }
 
-.btn-login-header:hover {
-  background-color: #0A847C;
-  color: white;
+.logout-item {
+  color: #d9534f;
+  border-top: 1px solid #eee;
+  margin-top: 5px;
 }
 
-/* --- BANNER E ÁREA PRINCIPAL --- */
+/* --- CONTEÚDO HOME --- */
 .main-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px 2%;
+  padding: 20px 5%;
 }
 
 .banner-slider {
-  background: linear-gradient(135deg, #0f4b46 0%, #0A847C 100%);
-  border-radius: 16px;
-  padding: 40px 20px;
-  text-align: center;
+  background: linear-gradient(135deg, #0A3B66 0%, #0A847C 100%);
+  border-radius: 12px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: white;
   margin-bottom: 40px;
-  box-shadow: 0 10px 25px -5px rgba(10, 132, 124, 0.3);
-}
-
-/* --- PÍLULAS DE CATEGORIAS --- */
-.categories-row-section {
-  width: 100%;
-  margin-bottom: 20px;
 }
 
 .categories-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
-  flex-wrap: wrap;
+  margin-bottom: 40px;
 }
 
 .category-pill {
   background-color: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #ddd;
   padding: 10px 22px;
   border-radius: 50px;
   font-weight: 600;
   font-size: 14px;
-  color: #475569;
   cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  transition: 0.2s;
 }
 
 .category-pill:hover {
-  border-color: #0A847C;
-  color: #0A847C;
-  background-color: #f1fbfa;
-  transform: scale(1.05);
+  background-color: #0A847C;
+  color: white;
 }
 
-/* --- SEÇÕES E CARROSSEL DE ANÚNCIOS --- */
-.scroll-container {
+.ads-row {
   display: flex;
-  gap: 20px; /* Espaço uniforme entre os cards (Como na OLX) */
+  gap: 20px;
   overflow-x: auto;
-  padding: 10px 4px 20px 4px; /* O padding bottom evita que a sombra do card seja cortada */
-  scroll-behavior: smooth;
-  -ms-overflow-style: none; /* IE e Edge */
-  scrollbar-width: none; /* Firefox */
+  padding-bottom: 15px;
 }
 
-/* Esconde a barra de rolagem no Chrome/Safari para ficar limpo */
-.scroll-container::-webkit-scrollbar { 
-  display: none; 
+.ad-card {
+  background-color: white;
+  min-width: 260px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  border: 1px solid #eee;
+  transition: 0.2s;
 }
 
-.listing-card-width {
-  width: 220px; /* Fixa a largura dos cards para não achatarem */
-  flex-shrink: 0;
+.ad-card:hover {
+  transform: translateY(-5px);
 }
+
+.ad-image-placeholder {
+  background-color: #f0f0f0;
+  height: 180px; /* Aumentei um pouco para ficar mais visível */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.ad-image-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Faz a imagem preencher o espaço sem distorcer */
+  display: block;
+}
+
+.ad-info { padding: 15px; }
+.ad-info h3 { font-size: 16px; color: #0A3B66; margin-bottom: 8px; }
+.ad-location { font-size: 13px; color: #888; }
+.ad-price { font-size: 18px; font-weight: bold; color: #0A847C; }
