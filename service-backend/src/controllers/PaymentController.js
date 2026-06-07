@@ -32,38 +32,99 @@ export const PaymentController = {
     }
   },
 
+  async testApprove(req, res) {
+    const { orderId } = req.body;
+    console.log('🧪 Simulação de aprovação manual para o pedido:', orderId);
+
+    try {
+      const { data: orderData } = await runOnOrderTables((orderTable) =>
+        supabase.from(orderTable).update({ status: 'paid' }).eq('id', orderId).select('listing_id, seller_id').single()
+      );
+
+      if (orderData?.listing_id) {
+        await supabase.from('listings').update({ status: 'sold' }).eq('id', orderData.listing_id);
+        const { data: sellerProfile } = await supabase.from('profiles').select('sales_count').eq('id', orderData.seller_id).single();
+        await supabase.from('profiles').update({ sales_count: (sellerProfile?.sales_count || 0) + 1 }).eq('id', orderData.seller_id);
+        
+        console.log(`✅ SIMULAÇÃO SUCESSO: Order ${orderId} paga.`);
+        return res.status(200).json({ success: true });
+      }
+      return res.status(404).json({ error: 'Order not found' });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  async simulateExternal(req, res) {
+    const { paymentId } = req.body;
+    const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+
+    console.log(`📡 Solicitando ao Mercado Pago simulação real para o pagamento: ${paymentId}`);
+
+    try {
+      const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}/simulate_payment?access_token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'approved' })
+      });
+
+      if (response.ok) {
+        console.log('✅ Comando de simulação aceito pelo Mercado Pago. Aguardando Webhook...');
+        return res.status(200).json({ success: true, message: 'Simulação enviada! O Webhook deve chegar em segundos.' });
+      } else {
+        const errData = await response.json();
+        return res.status(response.status).json({ error: errData });
+      }
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
   async webhook(req, res) {
     const { query, body } = req;
-    const type = body.type || query.topic || query.type;
-    const paymentId = body.data?.id || query.id;
+    console.log('🔔 Webhook received! Body:', JSON.stringify(body, null, 2));
+    
+    const topic = body.topic || query.topic || body.type;
+    const resourceId = body.data?.id || query.id;
 
-    if (type === 'payment' || type === 'payment.updated') {
-      try {
-        if (!paymentId) return res.status(200).send('OK');
+    try {
+      let orderId = null;
+      let isApproved = false;
 
-        const paymentDetails = await PaymentService.getPaymentDetails(paymentId);
-        const orderId = paymentDetails.external_reference;
-
-        if (paymentDetails.status === 'approved') {
-          // 1. Atualizar status do pedido para 'paid'
-          const { data: orderData } = await runOnOrderTables((orderTable) =>
-            supabase.from(orderTable).update({ status: 'paid' }).eq('id', orderId).select('listing_id, seller_id').single()
-          );
-
-          // 2. Marcar anúncio como VENDIDO
-          if (orderData?.listing_id) {
-            await supabase.from('listings').update({ status: 'sold' }).eq('id', orderData.listing_id);
-            
-            // 3. Incrementar contador de vendas do vendedor
-            const { data: sellerProfile } = await supabase.from('profiles').select('sales_count').eq('id', orderData.seller_id).single();
-            await supabase.from('profiles').update({ sales_count: (sellerProfile?.sales_count || 0) + 1 }).eq('id', orderData.seller_id);
-            
-            console.log(`✅ Order ${orderId} paid. Listing ${orderData.listing_id} marked as SOLD.`);
-          }
+      if (topic === 'payment' || topic === 'payment.updated') {
+        const paymentDetails = await PaymentService.getPaymentDetails(resourceId);
+        orderId = paymentDetails.external_reference;
+        isApproved = (paymentDetails.status === 'approved');
+        
+        if (!isApproved) {
+          console.log(`⚠️ Payment ${resourceId} NOT approved. Status: ${paymentDetails.status}, Detail: ${paymentDetails.status_detail}`);
         }
-      } catch (error) {
-        console.error('Error processing webhook:', error);
+      } 
+      else if (topic === 'merchant_order') {
+        const merchantOrder = await PaymentService.getMerchantOrderDetails(resourceId);
+        orderId = merchantOrder.external_reference;
+        isApproved = (merchantOrder.status === 'closed' || merchantOrder.payments?.some(p => p.status === 'approved'));
       }
+
+      if (isApproved && orderId) {
+        // 1. Atualizar status do pedido para 'paid'
+        const { data: orderData } = await runOnOrderTables((orderTable) =>
+          supabase.from(orderTable).update({ status: 'paid' }).eq('id', orderId).select('listing_id, seller_id').single()
+        );
+
+        if (orderData?.listing_id) {
+          // 2. Marcar anúncio como VENDIDO
+          await supabase.from('listings').update({ status: 'sold' }).eq('id', orderData.listing_id);
+          
+          // 3. Incrementar contador de vendas do vendedor
+          const { data: sellerProfile } = await supabase.from('profiles').select('sales_count').eq('id', orderData.seller_id).single();
+          await supabase.from('profiles').update({ sales_count: (sellerProfile?.sales_count || 0) + 1 }).eq('id', orderData.seller_id);
+          
+          console.log(`✅ SUCCESS: Order ${orderId} marked as PAID. Listing ${orderData.listing_id} marked as SOLD.`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error processing webhook:', error.message);
     }
 
     return res.status(200).send('OK');

@@ -11,7 +11,7 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('compras'); // 'compras' ou 'vendas'
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const toast = useToast();
 
   useEffect(() => {
     async function fetchOrders() {

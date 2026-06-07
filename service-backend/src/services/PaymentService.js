@@ -1,7 +1,8 @@
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 import dotenv from 'dotenv';
 
-dotenv.config();
+// Forçamos o reload das variáveis para garantir que o Docker pegue o .env novo sem restart
+dotenv.config({ override: true });
 
 const client = new MercadoPagoConfig({ 
   accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN || '' 
@@ -14,11 +15,22 @@ export const createPaymentPreference = async (order) => {
     ? process.env.FRONTEND_URL.replace(/\/$/, '') 
     : 'http://localhost:5173';
 
-  const webhookUrl = (process.env.WEBHOOK_URL && process.env.WEBHOOK_URL !== 'INSIRA_O_VALOR_AQUI')
+  let webhookUrl = (process.env.WEBHOOK_URL && process.env.WEBHOOK_URL !== 'INSIRA_O_VALOR_AQUI')
     ? process.env.WEBHOOK_URL.replace(/\/$/, '')
     : null;
 
+  // Automação DevOps: Se não houver WEBHOOK_URL manual, usamos o NGROK_DOMAIN estático
+  if (!webhookUrl && process.env.NGROK_DOMAIN && process.env.NGROK_DOMAIN !== 'INSIRA_O_VALOR_AQUI') {
+    webhookUrl = `https://${process.env.NGROK_DOMAIN.replace(/\/$/, '')}`;
+  }
+
+  const isLocal = !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
+  
+  // ESTRATÉGIA ASSERTIVA: Se temos um túnel HTTPS (ngrok), usamos ele para TUDO.
+  const redirectBase = (isLocal && webhookUrl) ? webhookUrl : frontendUrl;
+
   const body = {
+    binary_mode: true, // FORÇA APROVAÇÃO OU RECUSA IMEDIATA (Sem "Processando")
     items: [
       {
         id: String(order.listing_id || order.anuncio_id),
@@ -29,17 +41,11 @@ export const createPaymentPreference = async (order) => {
         description: 'Serviço contratado via ServiCE'
       }
     ],
-    payer: {
-      email: 'test_user_123@testuser.com', // Facilitador para Sandbox
-      identification: {
-        type: 'CPF',
-        number: '12345678909'
-      }
-    },
+    // Removemos o payer para que você preencha como CONVIDADO na tela
     back_urls: {
-      success: `${frontendUrl}/sucesso`,
-      failure: `${frontendUrl}/falha`,
-      pending: `${frontendUrl}/meus-pedidos`
+      success: `${redirectBase}/sucesso`,
+      failure: `${redirectBase}/falha`,
+      pending: `${redirectBase}/meus-pedidos`
     },
     auto_return: 'approved',
     external_reference: String(order.id)
@@ -68,5 +74,19 @@ export const getPaymentDetails = async (paymentId) => {
   } catch (error) {
     console.error("Error fetching payment details:", error);
     throw new Error('Error verifying payment on Mercado Pago.');
+  }
+};
+
+export const getMerchantOrderDetails = async (merchantOrderId) => {
+  try {
+    const response = await fetch(`https://api.mercadopago.com/merchant_orders/${merchantOrderId}`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`
+      }
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching merchant order details:", error);
+    throw new Error('Error verifying merchant order on Mercado Pago.');
   }
 };

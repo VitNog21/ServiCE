@@ -18,7 +18,7 @@ services:
         - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
         - VITE_API_URL=http://localhost:3000
     env_file:
-      - .env
+      - ./.env
     container_name: service-frontend
     ports:
       - "5173:5173"
@@ -29,5 +29,23 @@ services:
     volumes:
       - ./service-frontend:/app
       - /app/node_modules
+    depends_on:
+      - backend
+
+  tunnel:
+    image: ngrok/ngrok:latest
+    restart: always
+    tty: true
+    stdin_open: true
+    env_file:
+      - ./.env
+    command:
+      - "http"
+      - "--domain=${NGROK_DOMAIN}"
+      - "backend:3000"
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    ports:
+      - "4040:4040"
     depends_on:
       - backend

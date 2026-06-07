@@ -43,7 +43,7 @@ export default function ProductDetails() {
   const [reportReason, setReportReason] = useState('Fraude ou Golpe');
   const [reportDetails, setReportDetails] = useState('');
   const [isReporting, setIsReporting] = useState(false);
-  const { toast } = useToast();
+  const toast = useToast();
 
   // Carregar usuário autenticado
   useEffect(() => {

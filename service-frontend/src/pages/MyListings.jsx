@@ -25,7 +25,7 @@ const MyListings = () => {
   const [manageMenuOpenId, setManageMenuOpenId] = useState(null);
   const [isVendaModalOpen, setIsVendaModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
-  const { toast } = useToast();
+  const toast = useToast();
 
   useEffect(() => {
     const fetchMyListings = async () => {
