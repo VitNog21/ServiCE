@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, PauseCircle, Play, Trash2, X } from 'lucide-react';
+import { ArrowLeft, MoreVertical, PauseCircle, Play, Trash2, X, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,16 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import '../css/my-listings.css';
-
-const DELETE_REASON_OPTIONS = [
-  { value: 'sold_elsewhere', label: 'Vendi noutra plataforma' },
-  { value: 'stopped_selling', label: 'Desisti de vender' },
-  { value: 'no_contacts', label: 'Não recebi contactos' },
-  { value: 'other', label: 'Outro motivo' },
-];
 
 const MyListings = () => {
   const navigate = useNavigate();
@@ -33,7 +25,7 @@ const MyListings = () => {
   const [manageMenuOpenId, setManageMenuOpenId] = useState(null);
   const [isVendaModalOpen, setIsVendaModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
-  const toast = useToast();
+  const { toast } = useToast(); // Ajustado para desestruturar corretamente o toast
 
   useEffect(() => {
     const fetchMyListings = async () => {
@@ -43,11 +35,6 @@ const MyListings = () => {
         // 1. Lógica Híbrida de Autenticação
         const { data: { session } } = await supabase.auth.getSession();
         let currentUser = session?.user;
-
-        if (!currentUser) {
-          const savedUser = localStorage.getItem('service_user');
-          if (savedUser) currentUser = JSON.parse(savedUser);
-        }
 
         if (!currentUser) {
           navigate('/login');
@@ -152,11 +139,28 @@ const MyListings = () => {
     }
   };
 
+  // Mantivemos apenas A VERSÃO CORRETA desta função, conectada ao Modal
   const handleMarkAsSold = async () => {
     if (!selectedListing) return;
     await updateListingStatus(selectedListing.id, 'sold');
     setIsVendaModalOpen(false);
     toast({ title: "Sucesso!", description: "Anúncio marcado como vendido." });
+  };
+
+  // Funções adicionadas que faltavam para Pausar e Reativar
+  const pauseListing = async (listingId) => {
+    await updateListingStatus(listingId, 'paused');
+    setManageMenuOpenId(null);
+  };
+
+  const reactivateListing = async (listingId) => {
+    await updateListingStatus(listingId, 'active');
+    setManageMenuOpenId(null);
+  };
+
+  const handleEditListing = (listingId) => {
+    navigate(`/editar-anuncio/${listingId}`);
+    setManageMenuOpenId(null);
   };
 
   const activeListings = useMemo(
@@ -174,7 +178,6 @@ const MyListings = () => {
     if (activeTab === 'ativo') {
       return activeListings;
     }
-
     return soldListings;
   }, [activeTab, activeListings, soldListings]);
 
@@ -188,16 +191,6 @@ const MyListings = () => {
     if (status === 'paused') return 'status-badge status-paused';
     if (status === 'sold') return 'status-badge status-sold';
     return 'status-badge status-active';
-  };
-
-  const handleEditListing = (listingId) => {
-    navigate(`/editar-anuncio/${listingId}`);
-    setManageMenuOpenId(null);
-  };
-
-  const handleMarkAsSold = async (listingId) => {
-    await updateListingStatus(listingId, 'sold');
-    setManageMenuOpenId(null);
   };
 
   if (loading) {
@@ -389,7 +382,7 @@ const MyListings = () => {
         </div>
       )}
 
-      {/* MODAL VENDA EFETUADA / EXCLUIR (Requirement: Seção 3 do Escopo) */}
+      {/* MODAL VENDA EFETUADA / EXCLUIR */}
       <Dialog open={isVendaModalOpen} onOpenChange={setIsVendaModalOpen}>
         <DialogContent className="max-w-md rounded-2xl p-6">
           <DialogHeader>
