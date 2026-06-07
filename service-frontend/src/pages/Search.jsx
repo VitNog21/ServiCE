@@ -164,6 +164,9 @@ const SearchListings = () => {
     filters.categoryId, filters.minPrice, filters.maxPrice, filters.maxDistanceKm, filters.sortBy !== 'relevance'
   ].filter(Boolean).length;
 
+  // NOVA LINHA: Verifica se há algum termo digitado ou filtro selecionado
+  const isSearchActive = searchTerm.trim() !== '' || activeFiltersCount > 0;
+
   // Auth
   useEffect(() => {
     let isMounted = true;
@@ -266,9 +269,6 @@ const SearchListings = () => {
     const maxPrice = Number(filters.maxPrice);
     const maxDistanceMeters = filters.maxDistanceKm ? Number(filters.maxDistanceKm) * 1000 : null;
 
-    // Resolve o nome da categoria selecionada a partir do ID ou do próprio valor.
-    // Usa String() em ambos os lados porque c.id pode ser integer (2) enquanto
-    // filters.categoryId é sempre string (HTML input sempre retorna string).
     const selectedCategoryName = filters.categoryId
       ? normalizeText(
           categories.find((c) => String(c.id) === String(filters.categoryId))?.name ?? ''
@@ -282,8 +282,6 @@ const SearchListings = () => {
 
       if (query && !searchableText.includes(query)) return false;
 
-      // Compara por NOME da categoria (case-insensitive, sem acentos) para ser
-      // robusto independente de qual tabela/RPC gerou o listing
       if (selectedCategoryName) {
         const listingCategoryName = normalizeText(getListingCategoryName(listing));
         if (listingCategoryName !== selectedCategoryName) return false;
@@ -516,6 +514,15 @@ const SearchListings = () => {
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
             <div className="h-8 w-8 rounded-full border-2 border-[#0A847C]/30 border-t-[#0A847C] animate-spin" />
             <span className="text-sm">Carregando anúncios...</span>
+          </div>
+        ) : !isSearchActive ? (
+          /* NOVO ESTADO: NADA DIGITADO E NENHUM FILTRO */
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl">⌨️</div>
+            <h2 className="text-lg font-semibold text-slate-700">Comece sua busca</h2>
+            <p className="text-sm text-slate-400 max-w-xs">
+              Digite o que você procura ou aplique um filtro para encontrar serviços e produtos.
+            </p>
           </div>
         ) : filteredListings.length > 0 ? (
           <>
