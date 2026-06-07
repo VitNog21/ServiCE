@@ -34,7 +34,7 @@ const normalizeText = (value) => String(value ?? '')
   .toLowerCase();
 
 const SearchListings = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -55,6 +55,7 @@ const SearchListings = () => {
   const [locationSource, setLocationSource] = useState(null);
 
   const navigate = useNavigate();
+  const section = searchParams.get('section'); // Captura a seção vinda da Home
 
   const resetAdvancedFilters = () => {
     setFilters({
@@ -64,6 +65,12 @@ const SearchListings = () => {
       maxDistanceKm: '',
       sortBy: 'relevance',
     });
+    setSearchTerm('');
+    
+    // Remove os parâmetros da URL para voltar à estaca zero ("Comece sua busca")
+    searchParams.delete('section');
+    searchParams.delete('q');
+    setSearchParams(searchParams);
   };
 
   const fetchUserAvatar = async (currentUser) => {
@@ -164,8 +171,8 @@ const SearchListings = () => {
     filters.categoryId, filters.minPrice, filters.maxPrice, filters.maxDistanceKm, filters.sortBy !== 'relevance'
   ].filter(Boolean).length;
 
-  // NOVA LINHA: Verifica se há algum termo digitado ou filtro selecionado
-  const isSearchActive = searchTerm.trim() !== '' || activeFiltersCount > 0;
+  // Verifica se há texto, filtro ou se viemos de uma seção direta da Home
+  const isSearchActive = searchTerm.trim() !== '' || activeFiltersCount > 0 || section !== null;
 
   // Auth
   useEffect(() => {
@@ -194,7 +201,7 @@ const SearchListings = () => {
     return () => { isMounted = false; subscription.unsubscribe(); };
   }, []);
 
-  // Carrega parâmetros da URL e aplica aos filtros
+  // Inteligência de Filtros via URL e Seções da Home
   useEffect(() => {
     const q = searchParams.get('q');
     const category = searchParams.get('category');
@@ -202,16 +209,34 @@ const SearchListings = () => {
     const maxPrice = searchParams.get('maxPrice');
     const maxDistance = searchParams.get('maxDistance');
     const sort = searchParams.get('sort');
+    
+    // Configura ordenação e distância com base na seção em que o usuário clicou na Home
+    let defaultSort = 'relevance';
+    let defaultDistance = '';
+
+    if (sort) {
+      defaultSort = sort;
+      defaultDistance = maxDistance ? String(Number(maxDistance) / 1000) : '';
+    } else {
+      if (section === 'nearby') {
+        defaultSort = 'distance';
+        defaultDistance = '5'; // Raio de até 5km como na Home
+      } else if (section === 'visited') {
+        defaultSort = 'newest'; // Na home visitados ordenavam pelo criado mais recentemente
+      } else if (section === 'searched') {
+        defaultSort = 'price-asc'; // Na home buscados ordenavam pelo menor preço
+      }
+    }
 
     if (q) setSearchTerm(q);
     setFilters({
       categoryId: category || '',
       minPrice: minPrice || '',
       maxPrice: maxPrice || '',
-      maxDistanceKm: maxDistance ? String(Number(maxDistance) / 1000) : '', // Converte de metros para km
-      sortBy: sort || 'relevance',
+      maxDistanceKm: defaultDistance,
+      sortBy: defaultSort,
     });
-  }, [searchParams]);
+  }, [searchParams, section]);
 
   // Categorias
   useEffect(() => {
@@ -234,32 +259,34 @@ const SearchListings = () => {
     fetchCategories();
   }, []);
 
-  // Anúncios
+  // Busca Geral no Banco (A filtragem final fica no useMemo para ser ultrarrápida)
   useEffect(() => {
     if (authLoading) return;
     let isMounted = true;
-    const fetchNearbyListings = async () => {
+    const fetchListings = async () => {
       try {
         setLoading(true);
         setError('');
+        
+        // Sempre tenta usar o RPC para obter as distâncias para todas as categorias
         try {
           const { lat, lon } = await getUserCoordinates();
           const { data, error } = await supabase.rpc('buscar_anuncios_por_proximidade', { lat, lon });
           if (error) throw error;
           if (isMounted) setListings(Array.isArray(data) ? data : []);
-          return;
-        } catch (err) {}
-
-        const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, category:categories(id, name), address_text, created_at`).eq('status', 'active').order('created_at', { ascending: false }).limit(50);
-        if (error) throw error;
-        if (isMounted) setListings(Array.isArray(data) ? data : []);
+        } catch (err) {
+          // Fallback se geolocalização falhar
+          const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, category:categories(id, name), address_text, created_at`).eq('status', 'active');
+          if (error) throw error;
+          if (isMounted) setListings(Array.isArray(data) ? data : []);
+        }
       } catch (err) {
         if (isMounted) { setError('Não foi possível carregar os anúncios.'); setListings([]); }
       } finally {
         if (isMounted) setLoading(false);
       }
     };
-    fetchNearbyListings();
+    fetchListings();
     return () => { isMounted = false; };
   }, [authLoading, user]);
 
@@ -270,9 +297,7 @@ const SearchListings = () => {
     const maxDistanceMeters = filters.maxDistanceKm ? Number(filters.maxDistanceKm) * 1000 : null;
 
     const selectedCategoryName = filters.categoryId
-      ? normalizeText(
-          categories.find((c) => String(c.id) === String(filters.categoryId))?.name ?? ''
-        )
+      ? normalizeText(categories.find((c) => String(c.id) === String(filters.categoryId))?.name ?? '')
       : '';
 
     const filtered = listings.filter((listing) => {
@@ -281,12 +306,10 @@ const SearchListings = () => {
       const distanceMeters = getListingDistanceMeters(listing);
 
       if (query && !searchableText.includes(query)) return false;
-
       if (selectedCategoryName) {
         const listingCategoryName = normalizeText(getListingCategoryName(listing));
         if (listingCategoryName !== selectedCategoryName) return false;
       }
-
       if (filters.minPrice !== '' && (!Number.isFinite(minPrice) || price < minPrice)) return false;
       if (filters.maxPrice !== '' && (!Number.isFinite(maxPrice) || price > maxPrice)) return false;
       if (maxDistanceMeters !== null && (!Number.isFinite(distanceMeters) || distanceMeters > maxDistanceMeters)) return false;

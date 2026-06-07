@@ -32,6 +32,12 @@ const normalizeText = (value) => String(value ?? '')
   .replace(/[\u0300-\u036f]/g, '')
   .toLowerCase();
 
+// Array com os banners
+const BANNERS = [
+  '/assets/banner.1.png',
+  '/assets/banner.2.png'
+];
+
 const Home = () => {
   const [user, setUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
@@ -39,6 +45,9 @@ const Home = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
+  // Estado para controlar o banner atual
+  const [currentBanner, setCurrentBanner] = useState(0);
+
   // Estados dos inputs (Enquanto o usuário digita/escolhe)
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -90,9 +99,7 @@ const Home = () => {
   const resetAdvancedFilters = () => {
     const emptyFilters = { categoryId: '', minPrice: '', maxPrice: '', maxDistanceMeters: '', sortBy: 'relevance' };
     setFilters(emptyFilters);
-    setAppliedFilters(emptyFilters);
     setSearchTerm('');
-    setAppliedSearchTerm('');
   };
 
   const fetchUserAvatar = async (currentUser) => {
@@ -186,16 +193,17 @@ const Home = () => {
     return Number.isFinite(distance) ? distance : null;
   };
 
-  const getListingSearchableText = (listing) => normalizeText([
-    listing.titulo || listing.title,
-    listing.description,
-    getListingCategoryName(listing),
-    listing.address_text,
-  ].filter(Boolean).join(' '));
-
   const activeFiltersCount = [
     filters.categoryId, filters.minPrice, filters.maxPrice, filters.maxDistanceMeters, filters.sortBy !== 'relevance'
   ].filter(Boolean).length;
+
+  // Efeito para trocar o banner a cada 7 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBanner((prev) => (prev + 1) % BANNERS.length);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -439,7 +447,6 @@ const Home = () => {
                 </div>
 
                 <div className="flex flex-col gap-3 pt-5 border-t border-slate-100">
-                  {/* Botão principal — CTA primário, fácil de identificar */}
                   <button
                     type="button"
                     onClick={handleSearchSubmit}
@@ -449,7 +456,6 @@ const Home = () => {
                     Aplicar e Buscar
                   </button>
 
-                  {/* Botão secundário — limpar, claramente visível mas menos destacado */}
                   <button
                     type="button"
                     onClick={resetAdvancedFilters}
@@ -499,10 +505,36 @@ const Home = () => {
 
       {/* CONTEÚDO PRINCIPAL (COM MARGENS AUMENTADAS) */}
       <main className="main-content">
-        <section className="banner-slider">
-          <div>
-            <h2 className="text-3xl font-extrabold mb-3">Ofertas Especiais da Semana!</h2>
-            <p className="text-emerald-50 text-lg">Contrate os melhores profissionais mais próximos de você com segurança.</p>
+        
+        {/* SLIDER DE BANNERS */}
+        <section className="relative w-full h-[250px] sm:h-[350px] md:h-[400px] rounded-2xl overflow-hidden mb-12 shadow-sm bg-slate-100">
+          {BANNERS.map((banner, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                index === currentBanner ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              }`}
+            >
+              <img
+                src={banner}
+                alt={`Banner de oferta ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ))}
+          
+          {/* Indicadores do Slide (Bolinhas) */}
+          <div className="absolute bottom-4 left-0 right-0 z-20 flex justify-center gap-2">
+            {BANNERS.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentBanner(index)}
+                className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                  index === currentBanner ? 'bg-white' : 'bg-white/50 hover:bg-white/75'
+                }`}
+                aria-label={`Ir para o banner ${index + 1}`}
+              />
+            ))}
           </div>
         </section>
 
