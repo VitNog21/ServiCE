@@ -252,7 +252,6 @@ const EditProfile = () => {
               )}
               
               <div className="upload-controls">
-                {/* INPUT ESCONDIDO */}
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -262,7 +261,6 @@ const EditProfile = () => {
                   style={{ display: 'none' }} 
                 />
                 
-                {/* LABEL QUE ATUA COMO BOTÃO VERDE */}
                 <label htmlFor="avatar-input" className="btn-upload" style={{ cursor: 'pointer' }}>
                   {loadingUpload ? 'A enviar...' : 'Mudar Foto'}
                 </label>
@@ -300,24 +298,6 @@ const EditProfile = () => {
                 <option value="Feminino">Feminino</option>
                 <option value="Outro">Outro</option>
               </select>
-            </div>
-          </div>
-
-          {/* MÉTRICAS READ-ONLY */}
-          <div className="profile-section metrics-section">
-            <h2 className="section-title">Métricas do Marketplace</h2>
-            <div className="metrics-container">
-              <div className="metric-card">
-                <div className="metric-label">Classificação</div>
-                <div className="metric-value rating">
-                  {'⭐ '.repeat(Math.round(profile.rating || 5))}
-                  <span className="rating-number">{(profile.rating || 5).toFixed(1)}</span>
-                </div>
-              </div>
-              <div className="metric-card">
-                <div className="metric-label">Vendas Realizadas</div>
-                <div className="metric-value sales">{profile.sales_count || 0}</div>
-              </div>
             </div>
           </div>
 
