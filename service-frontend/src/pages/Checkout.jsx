@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { 
-  CreditCard, ArrowLeft, ShieldCheck, Loader2, 
-  QrCode, CheckCircle2, Wallet, Lock 
+import {
+  CreditCard, ArrowLeft, ShieldCheck, Loader2,
+  QrCode, CheckCircle2, Wallet, Lock, ChevronRight, Copy, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
+const priceFormatter = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 export default function Checkout() {
   const { orderId } = useParams();
@@ -15,7 +19,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Estados para o fluxo de pagamento
   const [step, setStep] = useState('summary'); // 'summary' | 'method' | 'simulated-payment'
   const [method, setMethod] = useState(null); // 'pix' | 'card'
@@ -47,9 +51,7 @@ export default function Checkout() {
   const handleSimulateSuccess = async () => {
     setProcessing(true);
     try {
-      // Simula um pequeno delay de rede para parecer real
       await new Promise(r => setTimeout(r, 1500));
-      
       const response = await fetch('http://localhost:3000/api/payments/test-approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,7 +60,7 @@ export default function Checkout() {
       if (response.ok) {
         navigate('/sucesso');
       }
-    } catch (err) {
+    } catch {
       alert('Erro na comunicação com o servidor de pagamentos.');
     } finally {
       setProcessing(false);
@@ -67,269 +69,261 @@ export default function Checkout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="h-10 w-10 animate-spin text-[#0A847C]" />
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-10 w-10 animate-spin text-[#0D6E56]" />
       </div>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white p-4">
         <p className="text-xl font-semibold text-slate-900">{error || 'Pedido inválido'}</p>
-        <Button onClick={() => navigate('/')} className="mt-4 bg-[#0A847C]">Voltar à Home</Button>
+        <Button onClick={() => navigate('/')} className="mt-4 rounded-xl bg-[#0D6E56] text-white hover:bg-[#0A4F3E]">
+          Voltar à Home
+        </Button>
       </div>
     );
   }
 
-  // RENDERIZAÇÃO POR ETAPAS
+  const formattedTotal = `R$ ${priceFormatter.format(Number(order.total_price))}`;
+  const title = order.listings?.title || 'Pedido';
+  const thumbnail = order.listings?.image_urls?.[0] || 'https://via.placeholder.com/64';
+
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4 font-sans">
-      <div className="max-w-2xl mx-auto">
-        
-        {/* Header de Navegação */}
-        <div className="flex items-center justify-between mb-8">
-          <button 
+    <div className="min-h-screen bg-[#F5F5F5] px-5 py-8 font-[-apple-system,BlinkMacSystemFont,'Inter','SF_Pro_Display','Segoe_UI',sans-serif] animate-in fade-in duration-200">
+      <div className="mx-auto w-full max-w-5xl pb-[max(24px,env(safe-area-inset-bottom))]">
+        <div className="mb-8 flex items-center justify-between rounded-[16px] bg-white px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
+          <button
             onClick={() => step === 'summary' ? navigate(-1) : setStep('summary')}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F5F5] text-slate-600 transition-all hover:bg-slate-200 active:scale-[0.97]"
+            aria-label="Voltar"
           >
-            <ArrowLeft className="h-5 w-5" />
-            <span className="font-medium">Voltar</span>
+            <ArrowLeft size={20} />
           </button>
-          <div className="flex gap-2">
-            {[1, 2, 3].map((s) => (
-              <div 
-                key={s} 
-                className={`h-1.5 w-12 rounded-full transition-all ${
-                  (s === 1 && step === 'summary') || 
-                  (s === 2 && step === 'method') || 
-                  (s === 3 && step === 'simulated-payment') 
-                    ? 'bg-[#0A847C] w-16' : 'bg-slate-200'
-                }`}
-              />
-            ))}
+          <h2 className="text-[12px] font-medium uppercase tracking-[0.06em] text-slate-500">
+            {step === 'summary' ? 'Resumo do pedido' : step === 'method' ? 'Pagamento' : 'Finalizar'}
+          </h2>
+          <div className="flex w-10 justify-end">
+            <ShieldCheck size={18} className="text-[#0D6E56]" />
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
-          
-          {/* TOPO DO CARD */}
-          <div className="bg-slate-900 p-8 text-white">
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-2xl font-bold mb-1">Finalizar Pedido</h1>
-                <p className="text-slate-400 text-sm font-mono">Ref: {order.id.slice(0, 12)}</p>
+        {step === 'summary' && (
+          <div className="grid gap-6 animate-in fade-in duration-200 lg:grid-cols-[1fr_360px]">
+            <section className="rounded-[16px] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.08)] md:p-8">
+            <div>
+              <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-500">Resumo do pedido</p>
+              <h1 className="text-[30px] font-semibold leading-tight text-[#111827]">Revise sua compra</h1>
+              <p className="mt-2 text-[16px] font-normal leading-6 text-slate-500">
+                Confira os dados antes de escolher a forma de pagamento.
+              </p>
+            </div>
+
+            <div className="mt-8 rounded-[16px] border border-slate-100 bg-white p-5">
+              <div className="flex items-center gap-5">
+                <img
+                  src={thumbnail}
+                  alt={title}
+                  className="h-24 w-24 rounded-[16px] object-cover"
+                />
+                <div className="min-w-0 flex-1">
+                  <h3 className="mb-3 text-[20px] font-semibold leading-tight text-[#111827]">{title}</h3>
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FAF6] px-2.5 py-1 text-[#0D6E56]">
+                    <ShieldCheck size={14} />
+                    <span className="text-[12px] font-medium">Pagamento protegido</span>
+                  </div>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-slate-400 text-xs uppercase tracking-widest mb-1">Total a pagar</p>
-                <p className="text-3xl font-black text-emerald-400 font-mono">
-                  R$ {Number(order.total_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </p>
+
+              <div className="mt-6 flex items-end justify-between border-t border-slate-100 pt-5">
+                <div>
+                  <p className="mb-1 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-500">Preço total</p>
+                  <p className="text-[34px] font-bold leading-none text-[#0D6E56]">{formattedTotal}</p>
+                </div>
               </div>
             </div>
+            </section>
+
+            <aside className="rounded-[16px] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
+              <p className="text-[12px] font-medium uppercase tracking-[0.06em] text-slate-500">Total</p>
+              <p className="mt-2 text-[32px] font-bold text-[#0D6E56]">{formattedTotal}</p>
+              <Button
+                onClick={() => setStep('method')}
+                className="mt-6 flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] border-none bg-[#0D6E56] text-[16px] font-semibold text-white shadow-lg shadow-emerald-900/10 transition-all hover:bg-[#0A4F3E] active:scale-[0.97]"
+              >
+                Seguir para Pagamento
+                <ChevronRight size={18} />
+              </Button>
+              <div className="mt-6 rounded-[14px] bg-[#F0FAF6] p-4 text-sm leading-6 text-[#0D6E56]">
+                <div className="mb-1 flex items-center gap-2 font-semibold">
+                  <ShieldCheck size={18} />
+                  Pagamento protegido
+                </div>
+                O valor fica protegido até a conclusão do serviço.
+              </div>
+            </aside>
           </div>
+        )}
 
-          <div className="p-8">
-            
-            {/* ETAPA 1: RESUMO DO PEDIDO */}
-            {step === 'summary' && (
-              <div className="space-y-8 animate-in fade-in duration-500">
-                <div className="flex items-center gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="relative">
-                    <img 
-                      src={order.listings?.image_urls?.[0] || 'https://via.placeholder.com/100'} 
-                      alt={order.listings?.title}
-                      className="w-24 h-24 rounded-xl object-cover shadow-md"
-                    />
-                    <div className="absolute -top-2 -right-2 bg-[#0A847C] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
-                      1 UN
-                    </div>
+        {step === 'method' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="text-center">
+              <h1 className="text-[24px] font-semibold text-[#111827]">Como deseja pagar?</h1>
+              <p className="mt-2 text-[16px] font-normal leading-6 text-slate-500">
+                Escolha um método para finalizar a compra com segurança.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <button
+                onClick={() => { setMethod('pix'); setStep('simulated-payment'); }}
+                className={`flex w-full items-center justify-between rounded-[16px] border-2 p-5 shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all duration-200 ease-in-out active:scale-[0.97] ${method === 'pix' ? 'border-[#0D6E56] bg-[#F0FAF6]' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-emerald-100 text-[#0D6E56]">
+                    <QrCode size={22} />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-slate-900 text-lg leading-tight mb-1">{order.listings?.title}</h3>
-                    <p className="text-slate-500 text-sm">Contratação via ServiCE Pay 🛡️</p>
-                    <div className="mt-3 flex items-center gap-2 text-emerald-600 font-bold">
-                      <ShieldCheck size={16} />
-                      <span className="text-xs uppercase">Pagamento Protegido</span>
-                    </div>
+                  <div className="text-left">
+                    <p className="text-[16px] font-medium text-[#111827]">PIX</p>
+                    <p className="text-[13px] text-slate-500">Aprovação instantânea</p>
                   </div>
                 </div>
+                <ChevronRight size={18} className="text-slate-300" />
+              </button>
 
-                <div className="space-y-4 pt-4">
-                  <Button 
-                    onClick={() => setStep('method')}
-                    className="w-full h-16 text-lg font-bold bg-[#0A847C] hover:bg-[#085a51] text-white rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3"
-                  >
-                    Seguir para o Pagamento
-                    <ArrowLeft size={20} className="rotate-180" />
-                  </Button>
-                  <p className="text-center text-slate-400 text-xs">
-                    Ao continuar, você concorda com nossos termos de proteção ao comprador.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* ETAPA 2: ESCOLHA DO MÉTODO */}
-            {step === 'method' && (
-              <div className="space-y-6 animate-in slide-in-from-right duration-300">
-                <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">Como deseja pagar?</h2>
-                
-                <div className="grid grid-cols-1 gap-4">
-                  <button 
-                    onClick={() => { setMethod('pix'); setStep('simulated-payment'); }}
-                    className="flex items-center justify-between p-6 border-2 border-slate-100 rounded-2xl hover:border-[#0A847C] hover:bg-emerald-50 transition-all group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="bg-emerald-100 p-3 rounded-xl text-emerald-600 group-hover:bg-emerald-200">
-                        <QrCode size={24} />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-bold text-slate-900 text-lg">PIX</p>
-                        <p className="text-slate-500 text-xs">Aprovação instantânea</p>
-                      </div>
-                    </div>
-                    <div className="w-6 h-6 rounded-full border-2 border-slate-200 group-hover:border-[#0A847C] flex items-center justify-center">
-                      <div className="w-3 h-3 bg-[#0A847C] rounded-full scale-0 group-hover:scale-100 transition-transform" />
-                    </div>
-                  </button>
-
-                  <button 
-                    onClick={() => { setMethod('card'); setStep('simulated-payment'); }}
-                    className="flex items-center justify-between p-6 border-2 border-slate-100 rounded-2xl hover:border-[#0A847C] hover:bg-emerald-50 transition-all group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="bg-blue-100 p-3 rounded-xl text-blue-600 group-hover:bg-blue-200">
-                        <CreditCard size={24} />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-bold text-slate-900 text-lg">Cartão de Crédito</p>
-                        <p className="text-slate-500 text-xs">Até 12x com juros</p>
-                      </div>
-                    </div>
-                    <div className="w-6 h-6 rounded-full border-2 border-slate-200 group-hover:border-[#0A847C] flex items-center justify-center">
-                      <div className="w-3 h-3 bg-[#0A847C] rounded-full scale-0 group-hover:scale-100 transition-transform" />
-                    </div>
-                  </button>
-                </div>
-
-                <div className="pt-6 flex items-center justify-center gap-2 text-slate-400">
-                  <Lock size={14} />
-                  <span className="text-[10px] uppercase font-bold tracking-widest">Ambiente Criptografado e Seguro</span>
-                </div>
-              </div>
-            )}
-
-            {/* ETAPA 3: SIMULAÇÃO DE PAGAMENTO */}
-            {step === 'simulated-payment' && (
-              <div className="space-y-8 animate-in zoom-in-95 duration-300">
-                {method === 'pix' ? (
-                  <div className="text-center space-y-6 py-4">
-                    <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 inline-block shadow-lg mx-auto">
-                      <QrCode size={180} className="text-slate-800" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-900">Escaneie o QR Code</h3>
-                      <p className="text-slate-500 text-sm max-w-xs mx-auto mt-2">
-                        Utilize o app do seu banco para realizar o pagamento instantâneo via PIX.
-                      </p>
-                    </div>
-                    
-                    <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center justify-between font-mono text-xs text-emerald-700">
-                      <span className="truncate">00020126580014BR.GOV.BCB.PIX...</span>
-                      <Button variant="ghost" className="text-emerald-700 h-8 font-bold">COPIAR</Button>
-                    </div>
-
-                    <Button 
-                      onClick={handleSimulateSuccess}
-                      disabled={processing}
-                      className="w-full h-16 text-lg font-bold bg-[#10B981] hover:bg-[#059669] text-white rounded-2xl shadow-xl transition-all"
-                    >
-                      {processing ? (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="animate-spin" />
-                          Processando Pagamento...
-                        </div>
-                      ) : (
-                        'Confirmar Pagamento Simulado'
-                      )}
-                    </Button>
+              <button
+                onClick={() => { setMethod('card'); setStep('simulated-payment'); }}
+                className={`flex w-full items-center justify-between rounded-[16px] border-2 p-5 shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all duration-200 ease-in-out active:scale-[0.97] ${method === 'card' ? 'border-[#0D6E56] bg-[#F0FAF6]' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-blue-100 text-blue-600">
+                    <CreditCard size={22} />
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl text-white shadow-2xl relative overflow-hidden h-48 flex flex-col justify-between">
-                      <div className="flex justify-between items-start relative z-10">
-                        <div className="w-12 h-10 bg-yellow-400/20 rounded-lg" />
-                        <CheckCircle2 className="text-slate-600" />
-                      </div>
-                      <div className="relative z-10">
-                        <p className="font-mono text-xl tracking-[0.25em]">**** **** **** 1234</p>
-                        <div className="flex justify-between items-end mt-4">
-                          <p className="font-mono text-sm uppercase">VOCÊ É SÊNIOR</p>
-                          <p className="font-mono text-sm">12/30</p>
-                        </div>
-                      </div>
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Número do Cartão</label>
-                        <Input disabled placeholder="5031 4332 1540 6351" className="bg-slate-50 border-slate-200" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Validade</label>
-                        <Input disabled placeholder="11/30" className="bg-slate-50 border-slate-200" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">CVV</label>
-                        <Input disabled placeholder="***" className="bg-slate-50 border-slate-200" />
-                      </div>
-                    </div>
-
-                    <Button 
-                      onClick={handleSimulateSuccess}
-                      disabled={processing}
-                      className="w-full h-16 text-lg font-bold bg-[#10B981] hover:bg-[#059669] text-white rounded-2xl shadow-xl transition-all mt-4"
-                    >
-                      {processing ? (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="animate-spin" />
-                          Validando Cartão...
-                        </div>
-                      ) : (
-                        'Pagar com Cartão Simulado'
-                      )}
-                    </Button>
+                  <div className="text-left">
+                    <p className="text-[16px] font-medium text-[#111827]">Cartão de crédito</p>
+                    <p className="text-[13px] text-slate-500">Até 12x com juros</p>
                   </div>
-                )}
-                <div className="text-center">
-                  <button onClick={() => setStep('method')} className="text-slate-400 text-xs hover:text-[#0A847C] transition-colors underline underline-offset-4">
-                    Alterar método de pagamento
-                  </button>
                 </div>
-              </div>
-            )}
+                <ChevronRight size={18} className="text-slate-300" />
+              </button>
+            </div>
+          </div>
+        )}
 
-            {/* Selo de Segurança no Rodapé do Card */}
-            <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
-              <div className="flex items-center gap-1">
-                <Lock size={12} className="text-slate-400" />
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Secure SSL</span>
-              </div>
-              <div className="h-4 w-[1px] bg-slate-200" />
-              <div className="flex items-center gap-1">
-                <CheckCircle2 size={12} className="text-slate-400" />
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Verified PCI</span>
-              </div>
-              <div className="h-4 w-[1px] bg-slate-200" />
-              <div className="flex items-center gap-1">
-                <Wallet size={12} className="text-slate-400" />
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Safe Pay</span>
+        {step === 'simulated-payment' && method === 'pix' && (
+          <div className="space-y-6 text-center animate-in fade-in duration-200">
+            <h1 className="text-[24px] font-semibold text-[#111827]">Pague com PIX</h1>
+
+            <div className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-[14px] font-semibold text-orange-600">
+              <Clock size={16} />
+              <span>Expira em 14:32</span>
+            </div>
+
+            <div className="mx-auto inline-block rounded-[16px] border border-slate-100 bg-white p-6 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+              <QrCode size={200} className="text-[#111827]" />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-center text-[12px] font-medium uppercase tracking-[0.06em] text-slate-500">Código copia e cola</p>
+              <div className="flex items-center justify-between overflow-hidden rounded-[12px] bg-[#F5F5F5] p-4 font-mono text-[11px] text-slate-600">
+                <span className="mr-4 truncate">00020126580014BR.GOV.BCB.PIX0114...</span>
+                <button className="flex shrink-0 items-center gap-1 font-semibold text-[#0D6E56] transition-all hover:opacity-80 active:scale-[0.97]">
+                  <Copy size={14} />
+                  Copiar
+                </button>
               </div>
             </div>
 
+            <Button
+              onClick={handleSimulateSuccess}
+              disabled={processing}
+              className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#0D6E56] text-[16px] font-semibold text-white shadow-lg shadow-emerald-900/10 transition-all hover:bg-[#0A4F3E] active:scale-[0.97]"
+            >
+              {processing ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={20} />}
+              {processing ? 'Confirmando...' : 'Confirmar pagamento'}
+            </Button>
           </div>
+        )}
+
+        {step === 'simulated-payment' && method === 'card' && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            <h1 className="text-center text-[24px] font-semibold text-[#111827]">Dados do cartão</h1>
+
+            <div className="relative flex h-[190px] flex-col justify-between overflow-hidden rounded-[16px] bg-gradient-to-br from-[#0D6E56] to-[#22A27E] p-6 text-white shadow-xl transition-transform duration-500 hover:rotate-1">
+              <div className="flex items-start justify-between">
+                <div className="h-9 w-12 rounded-[8px] border border-white/10 bg-yellow-300/25" />
+                <div className="flex h-7 w-12 items-center justify-center rounded-md bg-white/20 text-[10px] font-black italic">VISA</div>
+              </div>
+              <div className="space-y-4">
+                <p className="font-mono text-[18px] tracking-[0.2em] text-white/90">0000 0000 0000 0000</p>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="mb-0.5 text-[9px] uppercase tracking-[0.06em] text-white/60">Titular</p>
+                    <p className="font-mono text-[13px] font-medium uppercase">Nome no cartão</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="mb-0.5 text-[9px] uppercase tracking-[0.06em] text-white/60">Validade</p>
+                    <p className="font-mono text-[13px]">11/30</p>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute -right-12 -top-10 h-28 w-28 rounded-full border border-white/10" />
+            </div>
+
+            <div className="space-y-5">
+              <div className="relative">
+                <label className="absolute -top-2 left-3 bg-white px-1 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-500">Número do cartão</label>
+                <input
+                  disabled
+                  inputMode="numeric"
+                  placeholder="0000 0000 0000 0000"
+                  className="h-[52px] w-full rounded-[8px] border border-[#d1d5db] bg-white px-4 text-[15px] transition-colors focus:border-[#0D6E56] focus:outline-none disabled:opacity-100"
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <div className="relative flex-1">
+                  <label className="absolute -top-2 left-3 bg-white px-1 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-500">Validade</label>
+                  <input
+                    disabled
+                    placeholder="11/30"
+                    className="h-[52px] w-full rounded-[8px] border border-[#d1d5db] bg-white px-4 text-[15px] transition-colors focus:border-[#0D6E56] focus:outline-none disabled:opacity-100"
+                  />
+                </div>
+                <div className="relative flex-1">
+                  <label className="absolute -top-2 left-3 bg-white px-1 text-[12px] font-medium uppercase tracking-[0.06em] text-slate-500">CVV</label>
+                  <input
+                    disabled
+                    placeholder="123"
+                    className="h-[52px] w-full rounded-[8px] border border-[#d1d5db] bg-white px-4 text-[15px] transition-colors focus:border-[#0D6E56] focus:outline-none disabled:opacity-100"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleSimulateSuccess}
+              disabled={processing}
+              className="mt-4 flex h-[52px] w-full items-center justify-center gap-3 rounded-[14px] bg-[#0D6E56] text-[16px] font-semibold text-white shadow-lg shadow-emerald-900/10 transition-all hover:bg-[#0A4F3E] active:scale-[0.97]"
+            >
+              {processing ? <Loader2 className="animate-spin" /> : <Lock size={18} />}
+              {processing ? 'Processando...' : 'Pagar agora'}
+            </Button>
+          </div>
+        )}
+
+        <div className="mt-12 flex flex-col items-center gap-4 border-t border-[#f3f4f6] pt-8 animate-in fade-in duration-700">
+          <div className="flex items-center justify-center gap-3 text-[13px] font-medium text-slate-400">
+            <div className="flex items-center gap-1.5"><Lock size={12} /> SSL</div>
+            <span className="text-slate-300">·</span>
+            <div className="flex items-center gap-1.5"><CheckCircle2 size={12} /> PCI</div>
+            <span className="text-slate-300">·</span>
+            <div className="flex items-center gap-1.5"><Wallet size={12} /> SafePay</div>
+          </div>
+          <p className="max-w-[240px] text-center text-[11px] font-medium leading-relaxed text-slate-400">
+            Seu pagamento é processado com criptografia de ponta a ponta.
+          </p>
         </div>
       </div>
     </div>

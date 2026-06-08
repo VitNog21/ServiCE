@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Search, MapPin, ImageIcon, UserCircle } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -148,10 +148,6 @@ const CategoryProducts = () => {
   };
 
   // Função para formatar moeda
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
-  };
-
   // Filtrar anúncios por busca
   const filteredListings = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -168,40 +164,47 @@ const CategoryProducts = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)]">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#0A847C]"></div>
-          <p className="mt-4 text-slate-600">Carregando anúncios...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--green-700)]"></div>
+          <p className="mt-4 text-[var(--gray-600)]">Carregando anúncios...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="home-container">
+    <div className="app-page">
       {/* Header */}
-      <header className="main-header">
-        <img
-          src="/assets/logo_service.png"
-          alt="ServiCE"
-          className="header-logo"
-          onClick={() => navigate('/')}
-        />
+      <header className="app-page-header">
+        <div className="app-page-header-inner">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate(-1)} className="app-back-button">
+              <ArrowLeft className="h-5 w-5" />
+              <span className="hidden sm:inline">Voltar</span>
+            </button>
+            <img
+              src="/assets/logo_service.png"
+              alt="ServiCE"
+              className="h-9 cursor-pointer"
+              onClick={() => navigate('/')}
+            />
+          </div>
 
-        <form className="header-search m-0 border-0 bg-transparent" onSubmit={(e) => e.preventDefault()}>
-          <div className="mx-auto flex w-full max-w-3xl items-center rounded-xl border border-[#0A847C]/25 bg-white p-1 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+        <form className="m-0 max-w-xl flex-1 border-0 bg-transparent" onSubmit={(e) => e.preventDefault()}>
+          <div className="search-toolbar !p-1.5">
             <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={`Buscar em ${categoryName}...`}
-              className="h-9 border-0 px-4 text-xs shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="h-12 border-0 px-5 text-[15px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <Button
               type="submit"
-              className="h-9 shrink-0 gap-2 rounded-lg bg-[#10B981] px-6 text-white hover:bg-[#059669]"
+              className="flex h-12 min-w-[118px] shrink-0 items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--green-700)] px-6 text-[15px] font-semibold text-white hover:bg-[var(--green-800)]"
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-5 w-5 shrink-0" strokeWidth={2.4} />
               <span className="hidden sm:inline">Buscar</span>
             </Button>
           </div>
@@ -219,10 +222,10 @@ const CategoryProducts = () => {
                   <img
                     src={avatarUrl}
                     alt="Perfil"
-                    style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #0A847C' }}
+                    style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--green-700)' }}
                   />
                 ) : (
-                  <span style={{ fontSize: '24px' }}>👤</span>
+                  <UserCircle size={30} strokeWidth={1.8} />
                 )}
 
                 {showDropdown && (
@@ -241,40 +244,41 @@ const CategoryProducts = () => {
             <Link to="/login" className="btn-login-header">Entrar / Cadastrar</Link>
           )}
         </nav>
+        </div>
       </header>
 
       {/* Conteúdo Principal */}
-      <main className="main-content">
+      <main className="page-shell">
         <section className="relevant-ads-section">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="section-title">{categoryName}</h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-[var(--gray-600)]">
                 {filteredListings.length} anúncio{filteredListings.length !== 1 ? 's' : ''} disponível{filteredListings.length !== 1 ? 's' : ''}
               </p>
             </div>
 
             {searchTerm.trim() ? (
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+              <span className="rounded-full bg-[var(--gray-100)] px-3 py-1 text-xs font-medium text-[var(--gray-600)]">
                 Filtrando por: {searchTerm.trim()}
               </span>
             ) : null}
           </div>
 
           {error && (
-            <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="mb-5 rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               {error}
             </div>
           )}
 
           {filteredListings.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center text-slate-500">
+            <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--gray-200)] bg-white px-6 py-14 text-center text-[var(--gray-400)]">
               {searchTerm.trim() 
                 ? `Nenhum resultado para "${searchTerm.trim()}"` 
                 : 'Nenhum anúncio disponível nesta categoria.'}
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="internal-results-grid">
               {filteredListings.map((listing) => {
                 const imageUrl = Array.isArray(listing.image_urls) && listing.image_urls.length > 0
                   ? listing.image_urls[0]
@@ -286,48 +290,45 @@ const CategoryProducts = () => {
                   <Link
                     to={`/detalhes/${listing.id}`}
                     key={listing.id}
-                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl h-full"
-                    style={{ textDecoration: 'none', color: 'inherit' }}
+                    className="listing-result-card"
                   >
                     {/* Container de imagem */}
-                    <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden flex-shrink-0">
+                    <div className="listing-result-image">
+                      <div className="listing-result-badge">{categoryName}</div>
                       {imageUrl ? (
                         <img
                           src={imageUrl}
                           alt={title}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
                           loading="lazy"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-6xl text-slate-300">
-                          📷
+                        <div className="flex h-full items-center justify-center text-[var(--gray-400)]">
+                          <ImageIcon size={42} strokeWidth={1.6} />
                         </div>
                       )}
-                      {/* Overlay no hover */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
 
                     {/* Conteúdo */}
                     <div className="flex flex-col flex-grow space-y-3 p-5">
                       <div className="space-y-2 flex-grow">
-                        <h3 className="line-clamp-2 text-base font-semibold text-slate-900 transition-colors duration-200 group-hover:text-[#0A847C] min-h-[2.5rem]">
+                        <h3 className="line-clamp-2 text-base font-semibold text-[var(--gray-900)] transition-colors duration-200 group-hover:text-[var(--green-700)] min-h-[2.5rem]">
                           {title}
                         </h3>
-                        <div className="flex items-center gap-1 text-xs text-slate-600">
-                          <span className="inline-block">📍</span>
+                        <div className="flex items-center gap-1 text-xs text-[var(--gray-600)]">
+                          <MapPin size={14} strokeWidth={2} />
                           <p className="truncate">{listing.address_text || 'Localização não disponível'}</p>
                         </div>
                       </div>
 
                       {/* Preço e CTA */}
-                      <div className="mt-auto flex items-end justify-between gap-3 pt-4 border-t border-slate-100">
+                      <div className="mt-auto flex items-end justify-between gap-3 pt-4 border-t border-[var(--gray-100)]">
                         <div className="flex-1">
-                          <p className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1.5">Preço</p>
-                          <span className="text-lg font-bold text-[#0A847C] block">
+                          <p className="text-xs text-[var(--gray-400)] uppercase tracking-wide font-medium mb-1.5">Preço</p>
+                          <span className="text-lg font-bold text-[var(--green-700)] block">
                             R$ {Number(priceValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
-                        <span className="inline-flex items-center justify-center rounded-lg bg-[#10B981]/10 w-10 h-10 text-lg font-semibold text-[#10B981] transition-all duration-200 group-hover:bg-[#10B981] group-hover:text-white flex-shrink-0">
+                        <span className="inline-flex items-center justify-center rounded-[var(--radius-sm)] bg-[var(--green-600)]/10 w-10 h-10 text-lg font-semibold text-[var(--green-600)] transition-all duration-200 group-hover:bg-[var(--green-600)] group-hover:text-white flex-shrink-0">
                           →
                         </span>
                       </div>

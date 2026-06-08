@@ -2,7 +2,7 @@
    VARIAVEIS DE COR E ESTILO (Modern UI)
    ========================================= */
 :root {
-  --primary-color: #0A847C;
+  --primary-color: var(--green-700);
   --primary-hover: #086b64;
   --bg-color: #f8fafc;
   --card-bg: #ffffff;

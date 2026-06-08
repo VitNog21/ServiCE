@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { 
   ShoppingCart, ArrowLeft, ShieldCheck, MapPin, ChevronLeft, ChevronRight, 
-  MessageCircle, Flag, X, AlertTriangle 
+  MessageCircle, Flag, X, AlertTriangle, UserCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -196,10 +196,10 @@ export default function ProductDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)]">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#0A847C]"></div>
-          <p className="mt-4 text-slate-600">Carregando detalhes...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--green-700)]"></div>
+          <p className="mt-4 text-[var(--gray-600)]">Carregando detalhes...</p>
         </div>
       </div>
     );
@@ -207,13 +207,13 @@ export default function ProductDetails() {
 
   if (!produto) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)]">
         <div className="text-center space-y-4">
-          <p className="text-xl font-semibold text-slate-900">Anúncio não encontrado</p>
-          <p className="text-slate-600">Este anúncio pode ter sido removido ou expirado.</p>
+          <p className="text-xl font-semibold text-[var(--gray-900)]">Anúncio não encontrado</p>
+          <p className="text-[var(--gray-600)]">Este anúncio pode ter sido removido ou expirado.</p>
           <Button 
             onClick={() => navigate('/')}
-            className="mt-4 bg-[#0A847C] hover:bg-[#085a51] text-white rounded-lg px-6 py-2"
+            className="mt-4 bg-[var(--green-700)] hover:bg-[var(--green-800)] text-white rounded-[var(--radius-sm)] px-6 py-2"
           >
             Voltar à Home
           </Button>
@@ -246,41 +246,39 @@ export default function ProductDetails() {
   const labelDistancia = produto.address_text || 'Localização não disponível';
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
+    <div className="app-page pb-12">
       {/* Header Fixo */}
-      <div className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-16 flex items-center justify-between">
+      <div className="app-page-header">
+        <div className="app-page-header-inner">
             <button 
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-slate-700 hover:text-[#0A847C] transition-colors"
+              className="app-back-button"
             >
               <ArrowLeft className="h-5 w-5" />
               <span className="font-medium">Voltar para busca</span>
             </button>
-            <div className="inline-flex items-center gap-2 rounded-lg bg-[#0A847C]/10 px-3 py-1">
-              <span className="text-xs font-semibold text-[#0A847C] uppercase tracking-wide">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[var(--green-700)]/10 px-3 py-1">
+              <span className="text-xs font-semibold text-[var(--green-700)] uppercase tracking-wide">
                 {categoria}
               </span>
             </div>
-          </div>
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="page-shell">
         
         {/* Layout estilo OLX: 8 colunas para Foto/Descrição, 4 para Comprar/Preço */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           
           {/* LADO ESQUERDO (Foto no topo + Descrição) */}
           <div className="lg:col-span-8 space-y-6">
             
             {/* Galeria de Fotos (Fica no topo) */}
-            <div className="bg-black rounded-xl overflow-hidden relative shadow-sm" style={{ height: '450px' }}>
+            <div className="relative h-[clamp(300px,48vw,500px)] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--gray-100)] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.08)]">
               <img 
                 src={fotoExibida}
                 alt={`${titulo} - foto ${fotoAtual + 1}`}
-                className="w-full h-full object-contain bg-slate-100"
+                className="w-full h-full object-contain bg-[var(--gray-100)]"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/600?text=Imagem+não+disponível';
                 }}
@@ -290,13 +288,13 @@ export default function ProductDetails() {
                 <>
                   <button
                     onClick={irAnterior}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-slate-900 rounded-full p-2.5 shadow-lg transition-all"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2.5 text-[var(--gray-900)] shadow-lg transition-all hover:bg-white active:scale-95"
                   >
                     <ChevronLeft className="h-6 w-6" />
                   </button>
                   <button
                     onClick={irProxima}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-slate-900 rounded-full p-2.5 shadow-lg transition-all"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2.5 text-[var(--gray-900)] shadow-lg transition-all hover:bg-white active:scale-95"
                   >
                     <ChevronRight className="h-6 w-6" />
                   </button>
@@ -314,8 +312,8 @@ export default function ProductDetails() {
                   <button
                     key={index}
                     onClick={() => setFotoAtual(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                      index === fotoAtual ? 'border-[#0A847C] opacity-100' : 'border-transparent opacity-60 hover:opacity-100'
+                    className={`flex-shrink-0 w-20 h-20 rounded-[var(--radius-sm)] overflow-hidden border-2 transition-all ${
+                      index === fotoAtual ? 'border-[var(--green-700)] opacity-100' : 'border-transparent opacity-60 hover:opacity-100'
                     }`}
                   >
                     <img src={foto} alt={`Miniatura ${index}`} className="w-full h-full object-cover" />
@@ -325,22 +323,22 @@ export default function ProductDetails() {
             )}
 
             {/* Caixa de Descrição e Detalhes */}
-            <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-slate-200">
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6 leading-tight">
+            <div className="surface-card p-6 md:p-8">
+              <h1 className="text-2xl md:text-3xl font-bold text-[var(--gray-900)] mb-6 leading-tight">
                 {titulo}
               </h1>
               
-              <div className="border-t border-slate-100 pt-6">
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Descrição do Serviço</h2>
-                <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+              <div className="border-t border-[var(--gray-100)] pt-6">
+                <h2 className="text-lg font-semibold text-[var(--gray-900)] mb-4">Descrição do Serviço</h2>
+                <p className="text-[var(--gray-600)] leading-relaxed whitespace-pre-wrap">
                   {descricao}
                 </p>
               </div>
 
-              <div className="border-t border-slate-100 mt-8 pt-6">
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Localização</h2>
-                <div className="flex items-center gap-3 text-slate-600 bg-slate-50 p-4 rounded-lg">
-                  <MapPin className="h-6 w-6 text-[#0A847C] flex-shrink-0" />
+              <div className="border-t border-[var(--gray-100)] mt-8 pt-6">
+                <h2 className="text-lg font-semibold text-[var(--gray-900)] mb-4">Localização</h2>
+                <div className="flex items-center gap-3 text-[var(--gray-600)] bg-[var(--gray-50)] p-4 rounded-[var(--radius-md)]">
+                  <MapPin className="h-6 w-6 text-[var(--green-700)] flex-shrink-0" />
                   <span className="font-medium">{labelDistancia}</span>
                 </div>
               </div>
@@ -349,15 +347,15 @@ export default function ProductDetails() {
 
           {/* LADO DIREITO (Card Fixo com Preço e Botões) */}
           <div className="lg:col-span-4">
-            <div className="bg-white p-6 rounded-xl shadow-md border border-slate-200 sticky top-24">
+            <div className="surface-card sticky top-24 p-6">
               
-              <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-1">Preço do Serviço</p>
-              <div className="text-4xl font-bold text-[#0A847C] mb-6">
+              <p className="text-sm font-semibold text-[var(--gray-400)] uppercase tracking-wide mb-1">Preço do Serviço</p>
+              <div className="text-4xl font-bold text-[var(--green-700)] mb-6">
                 R$ {Number(preco).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
 
               {produto.status === 'sold' && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-[var(--radius-md)] text-center">
                   <p className="text-red-700 font-bold uppercase tracking-wider text-sm">Este item já foi vendido</p>
                 </div>
               )}
@@ -367,7 +365,7 @@ export default function ProductDetails() {
                 <Button 
                   onClick={handleCompra} 
                   disabled={comprando || produto.status === 'sold'}
-                  className="w-full h-14 text-base font-bold bg-[#10B981] hover:bg-[#059669] text-white transition-all rounded-xl shadow-sm disabled:bg-slate-300"
+                  className="h-14 w-full rounded-[var(--radius-md)] bg-[var(--green-700)] text-base font-bold text-white shadow-sm transition-all hover:bg-[var(--green-800)] active:scale-[0.98] disabled:bg-[var(--gray-200)]"
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
                   {comprando ? 'Processando...' : produto.status === 'sold' ? 'Vendido' : 'Comprar Agora'}
@@ -376,7 +374,7 @@ export default function ProductDetails() {
                 <Button 
                   onClick={handleStartChat}
                   disabled={authLoading || currentUser?.id === produto?.owner_id || produto.status === 'sold'}
-                  className="w-full h-14 text-base font-bold bg-white border-2 border-[#0A847C] text-[#0A847C] hover:bg-[#0A847C] hover:text-white transition-all rounded-xl shadow-sm disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-white"
+                  className="h-14 w-full rounded-[var(--radius-md)] border-2 border-[var(--green-700)] bg-white text-base font-bold text-[var(--green-700)] shadow-sm transition-all hover:bg-[var(--green-700)] hover:text-white active:scale-[0.98] disabled:border-[var(--gray-200)] disabled:text-[var(--gray-400)] disabled:hover:bg-white"
                 >
                   <MessageCircle className="mr-2 h-5 w-5" />
                   {currentUser?.id === produto?.owner_id ? 'Este é o seu anúncio' : 'Conversar pelo Chat'}
@@ -384,7 +382,7 @@ export default function ProductDetails() {
               </div>
 
               {/* Selo de Segurança */}
-              <div className="mt-6 flex items-start gap-3 p-4 bg-emerald-50/50 rounded-lg border border-emerald-100">
+              <div className="mt-6 flex items-start gap-3 p-4 bg-emerald-50/50 rounded-[var(--radius-sm)] border border-emerald-100">
                 <ShieldCheck className="h-6 w-6 text-emerald-500 flex-shrink-0" />
                 <div>
                   <p className="font-semibold text-emerald-900 text-sm">Garantia ServiCE</p>
@@ -393,26 +391,28 @@ export default function ProductDetails() {
               </div>
 
               {/* Informações do Vendedor */}
-              <div className="mt-6 pt-6 border-t border-slate-100">
-                <p className="text-sm font-semibold text-slate-900 mb-4">Informações do anunciante</p>
+              <div className="mt-6 pt-6 border-t border-[var(--gray-100)]">
+                <p className="text-sm font-semibold text-[var(--gray-900)] mb-4">Informações do anunciante</p>
                 <div className="flex items-center gap-3">
                   {ownerInfo?.avatar_url ? (
-                    <img src={ownerInfo.avatar_url} alt="Vendedor" className="w-12 h-12 rounded-full border border-slate-200 object-cover" />
+                    <img src={ownerInfo.avatar_url} alt="Vendedor" className="w-12 h-12 rounded-full border border-[var(--gray-200)] object-cover" />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-xl">👤</div>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--gray-50)] text-[var(--gray-400)]">
+                      <UserCircle size={28} strokeWidth={1.8} />
+                    </div>
                   )}
                   <div>
-                    <p className="font-semibold text-slate-900">{ownerInfo?.full_name || 'Usuário'}</p>
-                    <p className="text-xs text-slate-500">Na plataforma desde {new Date(ownerInfo?.created_at || produto.created_at).getFullYear()}</p>
+                    <p className="font-semibold text-[var(--gray-900)]">{ownerInfo?.full_name || 'Usuário'}</p>
+                    <p className="text-xs text-[var(--gray-400)]">Na plataforma desde {new Date(ownerInfo?.created_at || produto.created_at).getFullYear()}</p>
                   </div>
                 </div>
               </div>
 
               {/* Botão de Denúncia (Fica no rodapé do card direito) */}
-              <div className="mt-8 pt-4 border-t border-slate-100 text-center">
+              <div className="mt-8 pt-4 border-t border-[var(--gray-100)] text-center">
                 <button 
                   onClick={() => setIsReportModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-red-600 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--gray-400)] hover:text-red-600 transition-colors"
                 >
                   <Flag className="h-3.5 w-3.5" />
                   Denunciar este anúncio
@@ -427,19 +427,19 @@ export default function ProductDetails() {
 
       {/* MODAL DE DENÚNCIA */}
       <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
-        <DialogContent className="max-w-md border-0 p-0 shadow-2xl rounded-2xl overflow-hidden">
+        <DialogContent className="max-w-md border-0 p-0 shadow-2xl rounded-[var(--radius-lg)] overflow-hidden">
           <DialogHeader className="bg-red-50 px-6 py-5 border-b border-red-100">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="bg-red-100 p-2 rounded-full text-red-600">
                   <AlertTriangle className="h-5 w-5" />
                 </div>
-                <DialogTitle className="text-xl font-bold text-slate-900">
+                <DialogTitle className="text-xl font-bold text-[var(--gray-900)]">
                   Denunciar Anúncio
                 </DialogTitle>
               </div>
               <DialogClose asChild>
-                <button className="text-slate-400 hover:text-slate-600">
+                <button className="text-[var(--gray-400)] hover:text-[var(--gray-600)]">
                   <X className="h-5 w-5" />
                 </button>
               </DialogClose>
@@ -447,7 +447,7 @@ export default function ProductDetails() {
           </DialogHeader>
 
           <div className="p-6 space-y-4">
-            <DialogDescription className="text-slate-600 mb-4">
+            <DialogDescription className="text-[var(--gray-600)] mb-4">
               Por favor, selecione o motivo que melhor descreve o problema com este anúncio. Nossa equipe avaliará a situação.
             </DialogDescription>
 
@@ -455,10 +455,10 @@ export default function ProductDetails() {
               {REPORT_REASONS.map((option) => (
                 <label
                   key={option.value}
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                  className={`flex cursor-pointer items-center gap-3 rounded-[var(--radius-md)] border px-4 py-3 transition-colors ${
                     reportReason === option.value
                       ? 'border-red-500 bg-red-50'
-                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                      : 'border-[var(--gray-200)] bg-white hover:bg-[var(--gray-50)]'
                   }`}
                 >
                   <input
@@ -467,9 +467,9 @@ export default function ProductDetails() {
                     value={option.value}
                     checked={reportReason === option.value}
                     onChange={(e) => setReportReason(e.target.value)}
-                    className="h-4 w-4 border-slate-300 text-red-600 focus:ring-red-600"
+                    className="h-4 w-4 border-[var(--gray-200)] text-red-600 focus:ring-red-600"
                   />
-                  <span className="text-sm font-medium text-slate-700">{option.label}</span>
+                  <span className="text-sm font-medium text-[var(--gray-700)]">{option.label}</span>
                 </label>
               ))}
             </div>
@@ -480,18 +480,18 @@ export default function ProductDetails() {
                   value={reportDetails}
                   onChange={(e) => setReportDetails(e.target.value)}
                   placeholder="Por favor, detalhe o que há de errado com o anúncio..."
-                  className="min-h-[100px] rounded-xl border-slate-200 resize-none focus-visible:ring-red-500"
+                  className="min-h-[100px] rounded-[var(--radius-md)] border-[var(--gray-200)] resize-none focus-visible:ring-red-500"
                 />
               </div>
             )}
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex gap-3 sm:justify-end">
+          <DialogFooter className="px-6 py-4 border-t border-[var(--gray-100)] bg-[var(--gray-50)] flex gap-3 sm:justify-end">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsReportModalOpen(false)}
-              className="rounded-lg text-slate-600"
+              className="rounded-[var(--radius-sm)] text-[var(--gray-600)]"
             >
               Cancelar
             </Button>
@@ -499,7 +499,7 @@ export default function ProductDetails() {
               type="button"
               onClick={handleReport}
               disabled={isReporting || (reportReason === 'Outro' && !reportDetails.trim())}
-              className="rounded-lg bg-red-600 text-white hover:bg-red-700"
+              className="rounded-[var(--radius-sm)] bg-red-600 text-white hover:bg-red-700"
             >
               {isReporting ? 'Enviando...' : 'Enviar Denúncia'}
             </Button>

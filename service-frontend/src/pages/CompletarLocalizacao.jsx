@@ -79,33 +79,33 @@ export default function CompletarLocalizacao() {
   if (loading) return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)] p-4 font-sans">
+      <div className="max-w-md w-full bg-white rounded-[var(--radius-xl)] shadow-2xl border border-[var(--gray-100)] overflow-hidden animate-in fade-in zoom-in duration-500">
         
-        <div className="bg-[#0A847C] p-6 text-center">
+        <div className="bg-[var(--green-700)] p-6 text-center">
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <MapPin className="h-8 w-8 text-[#0A847C]" />
+            <MapPin className="h-8 w-8 text-[var(--green-700)]" />
           </div>
           <h2 className="text-2xl font-bold text-white">Quase lá!</h2>
-          <p className="text-[#0A847C] text-sm mt-1 bg-white/20 inline-block px-3 py-1 rounded-full">
+          <p className="text-white/80 text-sm mt-1 bg-white/20 inline-block px-3 py-1 rounded-full font-medium">
             Falta apenas um detalhe
           </p>
         </div>
 
         <div className="p-6 md:p-8">
-          <p className="text-slate-600 text-center mb-6">
+          <p className="text-[var(--gray-600)] text-center mb-6 leading-relaxed">
             Para te mostrar os melhores serviços próximos a você, precisamos saber a sua localização base.
           </p>
 
           {message && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm font-medium text-center border border-red-100">
+            <div className="mb-4 p-3 rounded-[var(--radius-sm)] bg-red-50 text-red-600 text-sm font-semibold text-center border border-red-100">
               {message}
             </div>
           )}
 
           <form onSubmit={handleSaveLocation} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Seu endereço ou bairro</label>
+              <label className="text-[12px] font-bold text-[var(--gray-400)] uppercase tracking-[0.06em] ml-1">Seu endereço ou bairro</label>
               <AddressAutocomplete
                 value={location}
                 onChange={handleLocationInputChange}
@@ -117,19 +117,19 @@ export default function CompletarLocalizacao() {
 
             <Button 
               type="submit" 
-              className="w-full h-12 bg-[#10B981] hover:bg-[#059669] text-white font-bold text-lg rounded-xl"
+              className="w-full h-12 bg-[var(--green-700)] hover:bg-[var(--green-800)] text-white font-bold text-lg rounded-[var(--radius-md)] shadow-lg shadow-emerald-900/10 transition-all active:scale-[0.97]"
               disabled={saving}
             >
               {saving ? 'A salvar...' : 'Confirmar e Entrar'}
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+          <div className="mt-6 pt-6 border-t border-[var(--gray-50)] text-center">
             <Button
               type="button"
               variant="ghost"
               onClick={handleLogout}
-              className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+              className="inline-flex items-center gap-2 text-sm text-[var(--gray-400)] hover:text-[var(--gray-900)] transition-colors rounded-[var(--radius-sm)]"
             >
               <LogOut className="h-4 w-4" />
               Sair e preencher depois

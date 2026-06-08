@@ -2,288 +2,72 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
-}
-
-.my-listings-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40px;
-  border-bottom: 2px solid #E2E8F0;
-  padding-bottom: 20px;
+  font-family: var(--font-body);
 }
 
 .my-listings-header h1 {
-  color: #0A3B66;
-  font-size: 28px;
-  margin-bottom: 8px;
-}
-
-.my-listings-header p {
-  color: #64748b;
-  margin: 0;
-}
-
-/* Abas */
-.listings-tabs {
-  display: flex;
-  gap: 0;
-  margin-bottom: 30px;
-  border-bottom: 2px solid #e2e8f0;
+  color: var(--gray-900);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .tab-button {
-  padding: 12px 20px;
-  border: none;
-  background-color: transparent;
-  color: #64748b;
   font-weight: 600;
-  cursor: pointer;
-  position: relative;
-  transition: color 0.2s;
-  border-bottom: 3px solid transparent;
-  margin-bottom: -2px;
-}
-
-.tab-button:hover {
-  color: #0A3B66;
+  color: var(--gray-400);
+  transition: var(--transition);
 }
 
 .tab-button.active {
-  color: #0A3B66;
-  border-bottom-color: #0A847C;
+  color: var(--green-700);
+  border-bottom-color: var(--green-700);
 }
 
 .btn-create-new {
-  background-color: #0A847C;
-  color: white;
-  border: none;
+  background-color: var(--green-700);
+  border-radius: var(--radius-md);
   padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  font-weight: 700;
+  transition: var(--transition);
 }
 
 .btn-create-new:hover {
-  background-color: #086B64;
-}
-
-/* Estado Vazio */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  background: white;
-  border-radius: 12px;
-  border: 1px dashed #cbd5e1;
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 20px;
-}
-
-.empty-state h2 {
-  color: #0A3B66;
-  margin-bottom: 10px;
-}
-
-.empty-state p {
-  color: #64748b;
-  margin-bottom: 24px;
-}
-
-/* Grid de Anúncios */
-.listings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
+  background-color: var(--green-800);
+  transform: translateY(-2px);
 }
 
 .listing-card {
-  background: white;
-  border-radius: 12px;
-  overflow: visible;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-  border: 1px solid #f1f5f9;
-  transition: transform 0.2s;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--gray-100);
+  transition: var(--transition);
 }
 
 .listing-card:hover {
-  transform: translateY(-4px);
-}
-
-.listing-hero {
-  all: unset;
-  display: block;
-  width: 100%;
-  cursor: pointer;
-}
-
-.listing-hero:focus-visible {
-  outline: 2px solid #0a847c;
-  outline-offset: 4px;
-  border-radius: 12px;
-}
-
-.listing-image-wrapper {
-  position: relative;
-  height: 200px;
-  width: 100%;
-  background-color: #f8fafc;
-  overflow: hidden;
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
-}
-
-.listing-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.listing-no-image {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  font-weight: 500;
-  background-color: #e2e8f0;
-}
-
-.listing-preview {
-  padding: 18px 20px 6px;
-}
-
-.listing-preview .listing-category {
-  display: block;
-  margin-bottom: 10px;
-}
-
-.listing-preview .listing-item-title {
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.status-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  color: white;
-}
-
-.status-active { background-color: #10b981; }
-.status-sold { background-color: #f59e0b; }
-.status-hidden { background-color: #64748b; }
-.status-paused { background-color: #64748b; }
-
-.listing-info {
-  padding: 0 20px 20px;
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.06);
 }
 
 .listing-category {
-  font-size: 12px;
-  color: #0A847C;
-  text-transform: uppercase;
+  color: var(--green-700);
   font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.listing-item-title {
-  margin: 8px 0;
-  font-size: 18px;
-  color: #1e293b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 11px;
 }
 
 .listing-price {
-  font-size: 22px;
-  font-weight: 700;
-  color: #0A3B66;
-  margin-bottom: 20px;
+  color: var(--green-700);
+  font-weight: 800;
 }
 
-.listing-actions {
-  display: flex;
-  gap: 12px;
-  border-top: 1px solid #f1f5f9;
-  padding: 16px 0 0 0;
-  margin-top: 16px;
-  position: relative;
-  z-index: 1;
-}
-
-.btn-edit-listing, .btn-delete-listing, .btn-complete-listing, .btn-revert-listing {
-  flex: 1;
-  padding: 10px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 13px;
-  transition: all 0.2s;
-  min-height: 36px;
-}
-
-.btn-edit-listing {
-  background-color: #f1f5f9;
-  color: #475569;
-}
-
-.btn-edit-listing:hover {
-  background-color: #e2e8f0;
-}
-
-.btn-delete-listing {
-  background-color: white;
-  color: #ef4444;
-  border-color: #fca5a5;
-}
-
-.btn-delete-listing:hover {
-  background-color: #fef2f2;
-}
+.status-active { background-color: var(--green-700); }
+.status-sold { background-color: #f59e0b; }
 
 .btn-complete-listing {
-  background-color: #d1fae5;
-  color: #047857;
-  border-color: #a7f3d0;
+  background-color: var(--green-50);
+  color: var(--green-700);
+  border: 1px solid var(--green-100);
 }
 
 .btn-complete-listing:hover:not(:disabled) {
-  background-color: #a7f3d0;
-}
-
-.btn-complete-listing:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-revert-listing {
-  background-color: #fef3c7;
-  color: #b45309;
-  border-color: #fde68a;
-}
-
-.btn-revert-listing:hover:not(:disabled) {
-  background-color: #fde68a;
-}
-
-.btn-revert-listing:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  background-color: var(--green-100);
 }
