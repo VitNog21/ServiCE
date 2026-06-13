@@ -77,7 +77,7 @@ const EditProfile = () => {
           throw profileError;
         }
 
-        // E. Lógica de Preenchimento (Fallback para o nome do cadastro/Google)
+        // E. Lógica de Preenchimento
         if (profileData) {
           setProfile(profileData);
           setFormData({
@@ -91,7 +91,7 @@ const EditProfile = () => {
           });
           setPreviewUrl(profileData.avatar_url || currentUser.user_metadata?.avatar_url || '');
         } else {
-          // Perfil novo: puxa o nome e foto do metadado do cadastro original
+          // Perfil novo
           const initialName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '';
           const initialAvatar = currentUser.user_metadata?.avatar_url || '';
           
@@ -217,82 +217,107 @@ const EditProfile = () => {
   }
 
   return (
-    <div className="profile-body">
-      <div className="profile-card">
+    <div className="profile-body bg-[#F5F7F9] min-h-screen flex items-center justify-center p-4">
+      <div className="profile-card bg-white w-full max-w-2xl rounded-2xl shadow-sm border border-slate-200 p-8">
+        
         <Button
           type="button"
           variant="ghost"
-          className="mb-4"
+          className="mb-6 -ml-4 text-slate-600 hover:text-slate-900"
           onClick={() => navigate(-1)}
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar
         </Button>
 
-        <div className="profile-header">
-          <h1 className="profile-title">Editar Perfil</h1>
-          <button type="button" className="btn-logout" onClick={handleLogout}>Sair</button>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900">Editar Perfil</h1>
         </div>
 
         {message.text && (
-          <div className={`alert alert-${message.type}`}>
+          <div className={`p-4 mb-6 rounded-lg font-medium text-sm ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
             {message.text}
           </div>
         )}
 
-        <form onSubmit={handleSaveProfile}>
-          {/* SEÇÃO DE FOTO DE PERFIL */}
-          <div className="profile-section">
-            <h2 className="section-title">Foto de Perfil</h2>
-            <div className="avatar-container">
-              {previewUrl ? (
-                <img src={previewUrl} alt="Avatar" className="avatar-preview" />
-              ) : (
-                <div className="avatar-placeholder"><span>Sem foto</span></div>
-              )}
+        <form onSubmit={handleSaveProfile} className="space-y-8">
+          
+          {/* SEÇÃO DE FOTO DE PERFIL (LADO A LADO) */}
+          <div>
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">Foto de Perfil</h2>
+            <div className="flex items-center gap-6">
               
-              <div className="upload-controls">
+              {/* Foto Redonda */}
+              <div className="w-24 h-24 shrink-0 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200 flex items-center justify-center">
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-slate-400 text-sm font-medium">Sem foto</span>
+                )}
+              </div>
+              
+              {/* Botão de Upload e Hint */}
+              <div className="flex flex-col gap-2">
                 <input 
                   type="file" 
                   accept="image/*" 
                   id="avatar-input"
                   onChange={handleFileChange} 
                   disabled={loadingUpload || savingProfile}
-                  style={{ display: 'none' }} 
+                  className="hidden" 
                 />
-                
-                <label htmlFor="avatar-input" className="btn-upload" style={{ cursor: 'pointer' }}>
+                <label 
+                  htmlFor="avatar-input" 
+                  className="bg-[#0A847C] hover:bg-[#085a51] text-white px-5 py-2.5 rounded-lg text-sm font-bold cursor-pointer transition-colors w-fit text-center shadow-sm"
+                >
                   {loadingUpload ? 'A enviar...' : 'Mudar Foto'}
                 </label>
-                
-                <p className="upload-hint">JPEG, PNG ou GIF. Máx. 5MB</p>
+                <p className="text-xs text-slate-500 font-medium">JPEG, PNG ou GIF. Máx. 5MB</p>
               </div>
+
             </div>
           </div>
 
+          <hr className="border-slate-100" />
+
           {/* INFORMAÇÕES PESSOAIS */}
-          <div className="profile-section">
-            <h2 className="section-title">Informações Pessoais</h2>
-            <div className="input-group">
-              <label htmlFor="full_name">Nome Completo</label>
+          <div className="space-y-5">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Informações Pessoais</h2>
+            
+            <div className="flex flex-col gap-2">
+              <label htmlFor="full_name" className="text-sm font-bold text-slate-700">Nome Completo</label>
               <input 
-                type="text" id="full_name" name="full_name"
-                value={formData.full_name} onChange={handleFormChange}
+                type="text" 
+                id="full_name" 
+                name="full_name"
+                value={formData.full_name} 
+                onChange={handleFormChange}
                 placeholder="Seu nome completo"
+                className="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white focus:border-[#0A847C] focus:ring-1 focus:ring-[#0A847C] outline-none transition-all text-slate-800"
               />
             </div>
-            <div className="input-group">
-              <label htmlFor="location">Localidade</label>
-              <AddressAutocomplete
-                value={formData.location}
-                onChange={handleLocationInputChange}
-                onAddressSelect={handleLocationSelect}
-                disabled={savingProfile}
-              />
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="location" className="text-sm font-bold text-slate-700">Localidade</label>
+              <div className="w-full h-12 [&>div]:h-full [&>div>input]:h-full [&>div>input]:rounded-xl [&>div>input]:border-slate-300 [&>div>input]:focus:border-[#0A847C] [&>div>input]:focus:ring-1 [&>div>input]:focus:ring-[#0A847C]">
+                <AddressAutocomplete
+                  value={formData.location}
+                  onChange={handleLocationInputChange}
+                  onAddressSelect={handleLocationSelect}
+                  disabled={savingProfile}
+                />
+              </div>
             </div>
-            <div className="input-group">
-              <label htmlFor="gender">Sexo</label>
-              <select id="gender" name="gender" value={formData.gender} onChange={handleFormChange}>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="gender" className="text-sm font-bold text-slate-700">Sexo</label>
+              <select 
+                id="gender" 
+                name="gender" 
+                value={formData.gender} 
+                onChange={handleFormChange}
+                className="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white focus:border-[#0A847C] focus:ring-1 focus:ring-[#0A847C] outline-none transition-all text-slate-800 cursor-pointer"
+              >
                 <option value="">Selecionar</option>
                 <option value="Masculino">Masculino</option>
                 <option value="Feminino">Feminino</option>
@@ -301,15 +326,27 @@ const EditProfile = () => {
             </div>
           </div>
 
-          {/* AÇÕES FINAIS */}
-          <div className="profile-actions">
-            <button type="submit" className="btn-primary" disabled={loadingUpload || savingProfile}>
+          <hr className="border-slate-100" />
+
+          {/* AÇÕES FINAIS (SALVAR E SAIR) */}
+          <div className="flex flex-col gap-3 pt-2">
+            <button 
+              type="submit" 
+              disabled={loadingUpload || savingProfile}
+              className="w-full h-14 bg-[#0A847C] hover:bg-[#085a51] text-white text-base font-bold rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {savingProfile ? 'A salvar...' : 'Salvar Perfil'}
             </button>
-            <button type="button" className="btn-secondary" onClick={() => navigate('/')}>
-              Voltar ao Início
+            
+            <button 
+              type="button" 
+              onClick={handleLogout}
+              className="w-full h-14 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-base font-bold rounded-xl transition-colors"
+            >
+              Sair da Conta
             </button>
           </div>
+
         </form>
       </div>
     </div>

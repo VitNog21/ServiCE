@@ -239,8 +239,6 @@ export default function DashboardAdmin() {
   // Funções de formatação
   const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-  // ... (Mantenha as funções handleSearchUsers, openUserDetails, handleDismissReport, handleDeleteListing, handleInitiateBan, handleConfirmBanUser, handleLogout exatamente iguais ao código anterior)
-
   const handleSearchUsers = async (e) => {
     e.preventDefault();
     if (!searchUserTerm.trim()) { setUsersList([]); return; }
@@ -628,9 +626,9 @@ export default function DashboardAdmin() {
         )}
       </main>
 
-      {/* MODAIS (MANTIDOS IGUAIS AO CÓDIGO ANTERIOR) */}
+      {/* MODAIS COM POSICIONAMENTO CENTRALIZADO (FIXED) */}
       <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
-        <DialogContent className="max-w-md bg-white border-0 p-0 shadow-2xl rounded-[var(--radius-lg)] overflow-hidden">
+        <DialogContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] max-w-md bg-white border-0 p-0 shadow-2xl rounded-[var(--radius-lg)] overflow-hidden">
           {selectedUserForDetails ? (
             <>
               <div className="bg-[var(--gray-900)] p-6 flex flex-col items-center text-center relative">
@@ -653,7 +651,7 @@ export default function DashboardAdmin() {
       </Dialog>
 
       <Dialog open={isBanModalOpen} onOpenChange={setIsBanModalOpen}>
-        <DialogContent className="max-w-sm bg-white border-0 p-0 shadow-2xl rounded-[var(--radius-lg)] overflow-hidden">
+        <DialogContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] max-w-sm bg-white border-0 p-0 shadow-2xl rounded-[var(--radius-lg)] overflow-hidden">
           <div className="bg-red-50 p-6 flex flex-col items-center text-center border-b border-red-100">
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4"><UserX size={32} /></div>
             <DialogTitle className="text-xl font-bold text-red-900">Banir Usuário</DialogTitle>

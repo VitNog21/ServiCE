@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, MessageCircle, Shield, SlidersHorizontal, ChevronDown, X, MapPin, ArrowLeft, UserCircle } from 'lucide-react';
+import { Search, MessageCircle, Shield, SlidersHorizontal, ChevronDown, X, MapPin, ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,9 +36,6 @@ const normalizeText = (value) => String(value ?? '')
 const SearchListings = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState(null);
-  const [avatarUrl, setAvatarUrl] = useState(null);
-  const [userRole, setUserRole] = useState(null);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -55,8 +52,9 @@ const SearchListings = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [locationSource, setLocationSource] = useState(null);
 
+  const advancedFiltersRef = useRef(null);
   const navigate = useNavigate();
-  const section = searchParams.get('section'); // Captura a seção vinda da Home
+  const section = searchParams.get('section');
 
   const resetAdvancedFilters = () => {
     setFilters({
@@ -68,43 +66,16 @@ const SearchListings = () => {
     });
     setSearchTerm('');
     
-    // Remove os parâmetros da URL para voltar à estaca zero ("Comece sua busca")
     searchParams.delete('section');
     searchParams.delete('q');
     setSearchParams(searchParams);
-  };
-
-  const fetchUserAvatar = async (currentUser) => {
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('avatar_url, role')
-        .eq('id', currentUser.id)
-        .single();
-
-      if (profile?.avatar_url) {
-        setAvatarUrl(profile.avatar_url);
-      } else if (currentUser.user_metadata?.avatar_url) {
-        setAvatarUrl(currentUser.user_metadata.avatar_url);
-      }
-      
-      if (profile?.role) {
-        setUserRole(profile.role);
-      } else if (currentUser.user_metadata?.role) {
-        setUserRole(currentUser.user_metadata.role);
-      }
-    } catch (fetchError) {
-      console.error('Erro ao buscar perfil:', fetchError);
-    }
   };
 
   const getBrowserCoordinates = () => {
     if (!navigator.geolocation) return Promise.reject(new Error('Geolocalização indisponível'));
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({ lat: position.coords.latitude, lon: position.coords.longitude });
-        },
+        (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
         reject,
         GEO_OPTIONS
       );
@@ -177,10 +148,8 @@ const SearchListings = () => {
     filters.categoryId, filters.minPrice, filters.maxPrice, filters.maxDistanceKm, filters.sortBy !== 'relevance'
   ].filter(Boolean).length;
 
-  // Verifica se há texto, filtro ou se viemos de uma seção direta da Home
   const isSearchActive = searchTerm.trim() !== '' || activeFiltersCount > 0 || section !== null;
 
-  // Auth
   useEffect(() => {
     let isMounted = true;
     const initializeAuth = async () => {
@@ -188,7 +157,6 @@ const SearchListings = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user && isMounted) {
           setUser(session.user);
-          fetchUserAvatar(session.user);
         }
       } catch (err) {} finally { if (isMounted) setAuthLoading(false); }
     };
@@ -197,17 +165,13 @@ const SearchListings = () => {
       if (!isMounted) return;
       if (session?.user) {
         setUser(session.user);
-        fetchUserAvatar(session.user);
       } else {
         setUser(null);
-        setAvatarUrl(null);
-        setUserRole(null);
       }
     });
     return () => { isMounted = false; subscription.unsubscribe(); };
   }, []);
 
-  // Inteligência de Filtros via URL e Seções da Home
   useEffect(() => {
     const q = searchParams.get('q');
     const category = searchParams.get('category');
@@ -216,7 +180,6 @@ const SearchListings = () => {
     const maxDistance = searchParams.get('maxDistance');
     const sort = searchParams.get('sort');
     
-    // Configura ordenação e distância com base na seção em que o usuário clicou na Home
     let defaultSort = 'relevance';
     let defaultDistance = '';
 
@@ -226,11 +189,11 @@ const SearchListings = () => {
     } else {
       if (section === 'nearby') {
         defaultSort = 'distance';
-        defaultDistance = '5'; // Raio de até 5km como na Home
+        defaultDistance = '5';
       } else if (section === 'visited') {
-        defaultSort = 'newest'; // Na home visitados ordenavam pelo criado mais recentemente
+        defaultSort = 'newest';
       } else if (section === 'searched') {
-        defaultSort = 'price-asc'; // Na home buscados ordenavam pelo menor preço
+        defaultSort = 'price-asc';
       }
     }
 
@@ -244,7 +207,6 @@ const SearchListings = () => {
     });
   }, [searchParams, section]);
 
-  // Categorias
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -265,7 +227,6 @@ const SearchListings = () => {
     fetchCategories();
   }, []);
 
-  // Busca Geral no Banco (A filtragem final fica no useMemo para ser ultrarrápida)
   useEffect(() => {
     if (authLoading) return;
     let isMounted = true;
@@ -274,14 +235,12 @@ const SearchListings = () => {
         setLoading(true);
         setError('');
         
-        // Sempre tenta usar o RPC para obter as distâncias para todas as categorias
         try {
           const { lat, lon } = await getUserCoordinates();
           const { data, error } = await supabase.rpc('buscar_anuncios_por_proximidade', { lat, lon });
           if (error) throw error;
           if (isMounted) setListings(Array.isArray(data) ? data : []);
         } catch (err) {
-          // Fallback se geolocalização falhar
           const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, category:categories(id, name), address_text, created_at`).eq('status', 'active');
           if (error) throw error;
           if (isMounted) setListings(Array.isArray(data) ? data : []);
@@ -297,10 +256,13 @@ const SearchListings = () => {
   }, [authLoading, user]);
 
   useEffect(() => {
-    const closeMenu = () => setShowDropdown(false);
-    if (showDropdown) window.addEventListener('click', closeMenu);
-    return () => window.removeEventListener('click', closeMenu);
-  }, [showDropdown]);
+    const handlePointerDown = (event) => {
+      if (!showAdvancedFilters) return;
+      if (advancedFiltersRef.current && !advancedFiltersRef.current.contains(event.target)) setShowAdvancedFilters(false);
+    };
+    window.addEventListener('mousedown', handlePointerDown);
+    return () => window.removeEventListener('mousedown', handlePointerDown);
+  }, [showAdvancedFilters]);
 
   const filteredListings = useMemo(() => {
     const query = normalizeText(searchTerm.trim());
@@ -343,9 +305,6 @@ const SearchListings = () => {
     }
     return sorted;
   }, [filters, listings, searchTerm, categories]);
-
-  const toggleDropdown = (e) => { e.stopPropagation(); setShowDropdown((current) => !current); };
-  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setAvatarUrl(null); setUserRole(null); setShowDropdown(false); navigate('/'); };
 
   const renderListingCard = (listing) => {
     const imageUrl = Array.isArray(listing.image_urls) && listing.image_urls.length > 0 ? listing.image_urls[0] : listing.imagem_url || null;
@@ -398,59 +357,26 @@ const SearchListings = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* HEADER */}
-      <header className="main-header border-b border-slate-200 shadow-sm bg-white sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto flex items-center justify-between w-full px-4 py-4">
-          <div className="flex items-center gap-4">
+      {/* HEADER AJUSTADO */}
+      <header className="main-header border-b border-slate-200 shadow-sm bg-white sticky top-0 z-30 h-16">
+        <div className="max-w-7xl mx-auto flex items-center w-full px-4 h-full relative">
+          
+          {/* Esquerda: Botão Voltar */}
+          <div className="flex-1 flex justify-start">
             <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors shrink-0">
               <ArrowLeft className="h-5 w-5" />
               <span className="hidden sm:inline font-medium text-sm">Voltar</span>
             </button>
-            <img src="/assets/logo_service.png" alt="ServiCE" className="h-9 cursor-pointer" onClick={() => navigate('/')} />
           </div>
 
-          <nav className="header-nav">
-            {authLoading ? (
-              <div className="loader-placeholder">A carregar...</div>
-            ) : user ? (
-              <div className="user-menu">
-                <div className="user-profile-icon" onClick={toggleDropdown} style={{ cursor: 'pointer', position: 'relative' }}>
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt="Perfil"
-                      style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--green-700)' }}
-                    />
-                  ) : (
-                    <UserCircle size={30} strokeWidth={1.8} />
-                  )}
+          {/* Centro: Logo (Absolute Center) */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center">
+            <img src="/assets/logo_service.png" alt="ServiCE" className="h-8 sm:h-9 cursor-pointer" onClick={() => navigate('/')} />
+          </div>
 
-                  {showDropdown && (
-                    <div className="dropdown-menu active" onClick={(e) => e.stopPropagation()} style={{ top: '50px', right: '0' }}>
-                      <div className="dropdown-header">
-                        <span className="user-email-text">{user.email}</span>
-                        {userRole === 'admin' && (
-                          <span className="bg-amber-100 text-amber-700 text-[9px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block uppercase">Admin</span>
-                        )}
-                      </div>
-                      <hr />
-                      <Link to="/perfil" className="dropdown-item">Meu Perfil</Link>
-                      <Link to="/meus-pedidos" className="dropdown-item">Minhas Compras</Link>
-                      <Link to="/meus-anuncios" className="dropdown-item">Meus Anúncios (Vendas)</Link>
-                      
-                      {userRole === 'admin' && (
-                        <Link to="/admin" className="dropdown-item font-bold text-amber-600">Dashboard Admin</Link>
-                      )}
-                      
-                      <button onClick={handleLogout} className="dropdown-item logout-item">Sair</button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <Link to="/login" className="btn-login-header">Entrar / Cadastrar</Link>
-            )}
-          </nav>
+          {/* Direita: Espaço Vazio para equilibrar (Ícone de perfil removido) */}
+          <div className="flex-1 flex justify-end"></div>
+
         </div>
       </header>
 
@@ -496,7 +422,7 @@ const SearchListings = () => {
 
             {/* FILTROS AVANÇADOS */}
             {showAdvancedFilters && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg">
+              <div ref={advancedFiltersRef} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg relative z-20">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-slate-800">Filtros avançados</h3>
                   <Button type="button" variant="ghost" onClick={() => setShowAdvancedFilters(false)} className="h-8 w-8 rounded-full p-0 text-slate-400 hover:text-slate-700">
@@ -578,8 +504,8 @@ const SearchListings = () => {
               </div>
             )}
           </form>
-          </div> {/* fecha max-width 680px */}
-        </div> {/* fecha flex center */}
+          </div>
+        </div>
       </section>
 
       <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '40px 24px' }}>
@@ -596,7 +522,7 @@ const SearchListings = () => {
             <span className="text-sm">Carregando anúncios...</span>
           </div>
         ) : !isSearchActive ? (
-          /* NOVO ESTADO: NADA DIGITADO E NENHUM FILTRO */
+          /* NADA DIGITADO E NENHUM FILTRO */
           <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl">⌨️</div>
             <h2 className="text-lg font-semibold text-slate-700">Comece sua busca</h2>
