@@ -133,6 +133,13 @@ export default function ProductDetails() {
       return;
     }
 
+    // Validação: Não permitir que o usuário compre seu próprio produto
+    if (currentUser.id === produto.owner_id) {
+      toast.error('Você não pode comprar seu próprio anúncio.');
+      setComprando(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('orders')
       .insert([
@@ -140,7 +147,7 @@ export default function ProductDetails() {
           listing_id: produto.id,
           buyer_id: currentUser.id,
           seller_id: produto.owner_id,
-          total_price: produto.price,
+          total_price: parseFloat(produto.price),
           status: 'pending'
         }
       ])
@@ -364,11 +371,11 @@ export default function ProductDetails() {
               <div className="space-y-3 pt-2">
                 <Button 
                   onClick={handleCompra} 
-                  disabled={comprando || produto.status === 'sold'}
+                  disabled={comprando || produto.status === 'sold' || currentUser?.id === produto?.owner_id}
                   className="h-14 w-full rounded-[var(--radius-md)] bg-[var(--green-700)] text-base font-bold text-white shadow-sm transition-all hover:bg-[var(--green-800)] active:scale-[0.98] disabled:bg-[var(--gray-200)]"
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  {comprando ? 'Processando...' : produto.status === 'sold' ? 'Vendido' : 'Comprar Agora'}
+                  {comprando ? 'Processando...' : produto.status === 'sold' ? 'Vendido' : currentUser?.id === produto?.owner_id ? 'Seu Anúncio' : 'Comprar Agora'}
                 </Button>
                 
                 <Button 

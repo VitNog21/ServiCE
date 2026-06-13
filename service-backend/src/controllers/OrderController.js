@@ -5,6 +5,11 @@ export const OrderController = {
   async createOrder(req, res) {
     const { anuncio_id, comprador_id, vendedor_id, valor_total } = req.body;
 
+    // Validação: Não permitir que o usuário compre seu próprio produto
+    if (comprador_id === vendedor_id) {
+      return res.status(400).json({ error: 'Você não pode comprar seu próprio anúncio.' });
+    }
+
     const { data, error } = await supabase
       .from('pedidos')
       .insert([{ anuncio_id, comprador_id, vendedor_id, valor_total, status: 'pendente' }])

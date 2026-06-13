@@ -154,32 +154,40 @@ const MyListings = () => {
 
   return (
     <div className="my-listings-container">
-      <Button variant="ghost" className="mb-4" onClick={() => navigate(-1)}>
-        <ArrowLeft className="h-4 w-4" /> Voltar
-      </Button>
-
-      <div className="my-listings-header">
-        <div>
-          <h1>Meus Anúncios</h1>
-          <p>Faça a gestão dos seus serviços e vendas.</p>
-        </div>
-        <Button className="btn-create-new" onClick={() => navigate('/criar-anuncio')}>
-          + Criar Anúncio
+      <div className="my-listings-header-section">
+        <Button variant="ghost" className="mb-4 hover:bg-[var(--gray-100)]" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
+
+        <div className="my-listings-header-content">
+          <div>
+            <h1>Meus Anúncios</h1>
+            <p>Faça a gestão dos seus serviços e vendas.</p>
+          </div>
+          <Button className="btn-create-new" onClick={() => navigate('/criar-anuncio')}>
+            + Criar Novo Anúncio
+          </Button>
+        </div>
       </div>
 
-      <div className="listings-tabs">
+      <div className="listings-tabs-container">
         <button
           className={`tab-button ${activeTab === 'ativo' ? 'active' : ''}`}
           onClick={() => setActiveTab('ativo')}
         >
-          Meus Anúncios ({activeListings.length})
+          <span className="font-semibold">Ativos</span>
+          <span className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{backgroundColor: activeTab === 'ativo' ? 'var(--green-700)' : 'var(--gray-200)', color: activeTab === 'ativo' ? 'white' : 'var(--gray-600)'}}>
+            {activeListings.length}
+          </span>
         </button>
         <button
           className={`tab-button ${activeTab === 'vendidos' ? 'active' : ''}`}
           onClick={() => setActiveTab('vendidos')}
         >
-          Vendidos/Finalizados ({soldListings.length})
+          <span className="font-semibold">Vendidos</span>
+          <span className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{backgroundColor: activeTab === 'vendidos' ? 'var(--green-700)' : 'var(--gray-200)', color: activeTab === 'vendidos' ? 'white' : 'var(--gray-600)'}}>
+            {soldListings.length}
+          </span>
         </button>
       </div>
 
