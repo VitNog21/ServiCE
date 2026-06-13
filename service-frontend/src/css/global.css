@@ -804,3 +804,24 @@ input  { font-family: var(--font-body); }
     height: 210px;
   }
 }
+
+/* --- SEÇÕES E CARROSSEL DE ANÚNCIOS --- */
+.scroll-container {
+  display: flex;
+  gap: 20px; /* Espaço uniforme entre os cards (Como na OLX) */
+  overflow-x: auto;
+  padding: 10px 4px 20px 4px; /* O padding bottom evita que a sombra do card seja cortada */
+  scroll-behavior: smooth;
+  -ms-overflow-style: none; /* IE e Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Esconde a barra de rolagem no Chrome/Safari para ficar limpo */
+.scroll-container::-webkit-scrollbar { 
+  display: none; 
+}
+
+.listing-card-width {
+  width: 220px; /* Fixa a largura dos cards para não achatarem */
+  flex-shrink: 0;
+}

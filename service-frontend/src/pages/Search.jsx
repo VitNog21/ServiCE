@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, MapPin, ArrowLeft, ImageIcon, UserCircle, SearchX } from 'lucide-react';
+import { Search, MessageCircle, Shield, SlidersHorizontal, ChevronDown, X, MapPin, ArrowLeft, UserCircle } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,15 +78,20 @@ const SearchListings = () => {
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('avatar_url, role, lat, lon')
+        .select('avatar_url, role')
         .eq('id', currentUser.id)
         .single();
 
-      if (profile) {
-        if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
-        if (profile.role) setUserRole(profile.role);
+      if (profile?.avatar_url) {
+        setAvatarUrl(profile.avatar_url);
       } else if (currentUser.user_metadata?.avatar_url) {
         setAvatarUrl(currentUser.user_metadata.avatar_url);
+      }
+      
+      if (profile?.role) {
+        setUserRole(profile.role);
+      } else if (currentUser.user_metadata?.role) {
+        setUserRole(currentUser.user_metadata.role);
       }
     } catch (fetchError) {
       console.error('Erro ao buscar perfil:', fetchError);
@@ -124,7 +129,7 @@ const SearchListings = () => {
       const lon = Number(data?.lon);
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
       return { lat, lon };
-    } catch {
+    } catch (err) {
       return null;
     }
   };
@@ -140,7 +145,7 @@ const SearchListings = () => {
       const coords = await getBrowserCoordinates();
       setLocationSource('gps');
       return coords;
-    } catch {
+    } catch (err) {
       const ipCoords = await getIpCoordinates();
       setLocationSource('ip');
       return ipCoords;
@@ -185,9 +190,7 @@ const SearchListings = () => {
           setUser(session.user);
           fetchUserAvatar(session.user);
         }
-      } catch (sessionError) {
-        console.error('Erro ao inicializar sessão:', sessionError);
-      } finally { if (isMounted) setAuthLoading(false); }
+      } catch (err) {} finally { if (isMounted) setAuthLoading(false); }
     };
     initializeAuth();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -257,9 +260,7 @@ const SearchListings = () => {
           });
         }
         setCategories(uniqueCategories);
-      } catch (fetchError) {
-        console.error('Erro ao buscar categorias:', fetchError);
-      }
+      } catch (err) {}
     };
     fetchCategories();
   }, []);
@@ -279,14 +280,13 @@ const SearchListings = () => {
           const { data, error } = await supabase.rpc('buscar_anuncios_por_proximidade', { lat, lon });
           if (error) throw error;
           if (isMounted) setListings(Array.isArray(data) ? data : []);
-        } catch {
+        } catch (err) {
           // Fallback se geolocalização falhar
           const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, category:categories(id, name), address_text, created_at`).eq('status', 'active');
           if (error) throw error;
           if (isMounted) setListings(Array.isArray(data) ? data : []);
         }
-      } catch (fetchError) {
-        console.error('Erro ao carregar anúncios:', fetchError);
+      } catch (err) {
         if (isMounted) { setError('Não foi possível carregar os anúncios.'); setListings([]); }
       } finally {
         if (isMounted) setLoading(false);
@@ -295,6 +295,12 @@ const SearchListings = () => {
     fetchListings();
     return () => { isMounted = false; };
   }, [authLoading, user]);
+
+  useEffect(() => {
+    const closeMenu = () => setShowDropdown(false);
+    if (showDropdown) window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
+  }, [showDropdown]);
 
   const filteredListings = useMemo(() => {
     const query = normalizeText(searchTerm.trim());
@@ -338,7 +344,8 @@ const SearchListings = () => {
     return sorted;
   }, [filters, listings, searchTerm, categories]);
 
-  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setAvatarUrl(null); setUserRole(null); navigate('/'); };
+  const toggleDropdown = (e) => { e.stopPropagation(); setShowDropdown((current) => !current); };
+  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setAvatarUrl(null); setUserRole(null); setShowDropdown(false); navigate('/'); };
 
   const renderListingCard = (listing) => {
     const imageUrl = Array.isArray(listing.image_urls) && listing.image_urls.length > 0 ? listing.image_urls[0] : listing.imagem_url || null;
@@ -352,59 +359,62 @@ const SearchListings = () => {
       <Link
         to={`/detalhes/${listing.id}`}
         key={listing.id}
-        className="listing-result-card"
+        className="group relative flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300"
+        style={{ textDecoration: 'none', color: 'inherit' }}
       >
-        <div className="listing-result-image">
-          <div className="listing-result-badge">
-            {categoryName}
-          </div>
+        <div className="absolute top-3 left-3 z-10 inline-flex items-center rounded bg-white/95 px-2 py-0.5 backdrop-blur-sm shadow-sm">
+          <span className="text-[10px] font-bold text-[#0A847C] uppercase tracking-wider">
+            {categoryName.slice(0, 15)}
+          </span>
+        </div>
 
+        <div className="aspect-square w-full bg-slate-100 relative overflow-hidden">
           {imageUrl ? (
-            <img src={imageUrl} alt={title} loading="lazy" />
+            <img src={imageUrl} alt={title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
           ) : (
-            <div className="text-slate-300">
-              <ImageIcon size={42} strokeWidth={1.6} />
-            </div>
+            <div className="flex h-full items-center justify-center text-4xl text-slate-300">📷</div>
           )}
         </div>
 
-        <div className="listing-result-body">
-          <h3 className="listing-result-title">{title}</h3>
+        <div className="flex flex-col flex-grow p-4">
+          <h3 className="line-clamp-2 text-sm font-medium text-slate-900 leading-tight group-hover:text-[#0A847C] transition-colors">
+            {title}
+          </h3>
 
-          <div className="listing-result-meta">
-            <MapPin size={14} strokeWidth={2} />
-            <span className="truncate">{distanceLabel}</span>
-            {locationSource === 'ip' && (
-              <span className="location-source-pill">distância aproximada por IP</span>
-            )}
+          <div className="mt-3 text-lg font-bold text-slate-900">
+            R$ {Number(priceValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
 
-          <div className="listing-result-price-row">
-            <span className="listing-result-currency">R$</span>
-            <span className="listing-result-price">{Number(priceValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-          </div>
+          {distanceLabel && (
+            <div className="mt-auto pt-3 flex items-center gap-1.5 text-xs text-slate-500">
+              <MapPin className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+              <span className="truncate">{distanceLabel}</span>
+            </div>
+          )}
         </div>
       </Link>
     );
   };
 
   return (
-    <div className="app-page">
+    <div className="min-h-screen bg-white">
       {/* HEADER */}
-      <header className="app-page-header">
-        <div className="app-page-header-inner">
+      <header className="main-header border-b border-slate-200 shadow-sm bg-white sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto flex items-center justify-between w-full px-4 py-4">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/')} className="app-back-button shrink-0">
+            <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors shrink-0">
               <ArrowLeft className="h-5 w-5" />
               <span className="hidden sm:inline font-medium text-sm">Voltar</span>
             </button>
             <img src="/assets/logo_service.png" alt="ServiCE" className="h-9 cursor-pointer" onClick={() => navigate('/')} />
           </div>
 
-          <div className="header-nav">
-            {!authLoading && user ? (
+          <nav className="header-nav">
+            {authLoading ? (
+              <div className="loader-placeholder">A carregar...</div>
+            ) : user ? (
               <div className="user-menu">
-                <div className="user-profile-icon" onClick={(e) => { e.stopPropagation(); setShowDropdown(!showDropdown); }} style={{ cursor: 'pointer', position: 'relative' }}>
+                <div className="user-profile-icon" onClick={toggleDropdown} style={{ cursor: 'pointer', position: 'relative' }}>
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
@@ -416,14 +426,14 @@ const SearchListings = () => {
                   )}
 
                   {showDropdown && (
-                    <div className="dropdown-menu active" style={{ display: 'block', top: '50px', right: '0' }}>
-                      <div className="dropdown-header" style={{ padding: '10px 15px' }}>
-                        <span className="user-email-text" style={{ fontSize: '11px', color: 'var(--gray-400)', display: 'block' }}>{user.email}</span>
+                    <div className="dropdown-menu active" onClick={(e) => e.stopPropagation()} style={{ top: '50px', right: '0' }}>
+                      <div className="dropdown-header">
+                        <span className="user-email-text">{user.email}</span>
                         {userRole === 'admin' && (
                           <span className="bg-amber-100 text-amber-700 text-[9px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block uppercase">Admin</span>
                         )}
                       </div>
-                      <hr style={{ margin: '5px 0', border: '0', borderTop: '1px solid var(--gray-100)' }} />
+                      <hr />
                       <Link to="/perfil" className="dropdown-item">Meu Perfil</Link>
                       <Link to="/meus-pedidos" className="dropdown-item">Minhas Compras</Link>
                       <Link to="/meus-anuncios" className="dropdown-item">Meus Anúncios (Vendas)</Link>
@@ -432,52 +442,52 @@ const SearchListings = () => {
                         <Link to="/admin" className="dropdown-item font-bold text-amber-600">Dashboard Admin</Link>
                       )}
                       
-                      <button onClick={handleLogout} className="dropdown-item logout-item" style={{ color: '#d9534f', borderTop: '1px solid var(--gray-100)', marginTop: '5px' }}>Sair</button>
+                      <button onClick={handleLogout} className="dropdown-item logout-item">Sair</button>
                     </div>
                   )}
                 </div>
               </div>
-            ) : !authLoading && (
-              <Link to="/login" className="btn-login-header">Entrar</Link>
+            ) : (
+              <Link to="/login" className="btn-login-header">Entrar / Cadastrar</Link>
             )}
-          </div>
+          </nav>
         </div>
       </header>
 
       {/* HERO DE BUSCA */}
-      <section className="page-hero">
-        <div className="page-hero-inner">
-          <div className="mx-auto w-full max-w-[720px]">
-            <h1 className="page-title">
+      <section style={{ backgroundColor: '#f0fafa', borderBottom: '1px solid #e2e8f0', padding: '40px 16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+          <div style={{ width: '100%', maxWidth: '680px' }}>
+            <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '4px' }}>
               Encontre o que você precisa
             </h1>
-            <p className="page-subtitle mb-6">
+            <p style={{ textAlign: 'center', fontSize: '0.875rem', color: '#64748b', marginBottom: '24px' }}>
               Pesquise produtos e serviços próximos a você
             </p>
 
           <form className="flex flex-col gap-3" onSubmit={(e) => e.preventDefault()}>
             {/* BARRA DE BUSCA */}
-            <div className="search-toolbar">
+            <div className="flex gap-2 rounded-2xl border border-slate-200 bg-white shadow-sm p-1.5 focus-within:border-[#0A847C]/60 focus-within:shadow-md transition-all">
               <Input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Estou procurando por..."
-                className="h-11 flex-1 border-0 bg-transparent px-4 text-[15px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="h-10 border-0 bg-transparent px-3 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 flex-1"
               />
-              <Button type="submit" className="h-11 min-w-[112px] shrink-0 gap-2 rounded-[var(--radius-md)] bg-[var(--green-700)] px-5 text-white hover:bg-[var(--green-800)]">
-                <Search className="h-4 w-4 shrink-0" />
+              <Button type="submit" className="h-10 gap-2 rounded-xl bg-[#0A847C] px-5 text-white hover:bg-[#085a51] shrink-0">
+                <Search className="h-4 w-4" />
                 <span className="hidden sm:inline">Buscar</span>
               </Button>
               <Button
                 type="button"
                 onClick={() => setShowAdvancedFilters((c) => !c)}
                 variant="outline"
-                className="h-11 shrink-0 gap-1.5 rounded-[var(--radius-md)] border-[var(--gray-200)] px-4 text-[var(--gray-600)] hover:bg-[var(--gray-50)]"
+                className="h-10 gap-1.5 rounded-xl border-slate-200 px-3 text-slate-600 hover:bg-slate-50 shrink-0"
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 {activeFiltersCount > 0 && (
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--green-700)] px-1.5 text-[10px] font-bold text-white">
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0A847C] px-1.5 text-[10px] font-bold text-white">
                     {activeFiltersCount}
                   </span>
                 )}
@@ -486,21 +496,21 @@ const SearchListings = () => {
 
             {/* FILTROS AVANÇADOS */}
             {showAdvancedFilters && (
-              <div className="filter-panel">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-[var(--gray-900)]">Filtros avançados</h3>
-                  <Button type="button" variant="ghost" onClick={() => setShowAdvancedFilters(false)} className="h-8 w-8 rounded-full p-0 text-[var(--gray-400)] hover:text-[var(--gray-900)]">
+                  <h3 className="text-sm font-semibold text-slate-800">Filtros avançados</h3>
+                  <Button type="button" variant="ghost" onClick={() => setShowAdvancedFilters(false)} className="h-8 w-8 rounded-full p-0 text-slate-400 hover:text-slate-700">
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="space-y-1.5">
-                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--gray-400)]">Categoria</span>
+                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Categoria</span>
                     <select
                       value={filters.categoryId}
                       onChange={(e) => setFilters((c) => ({ ...c, categoryId: e.target.value }))}
-                      className="form-control"
+                      className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none transition focus:border-[#0A847C] focus:bg-white"
                     >
                       <option value="">Todas as categorias</option>
                       {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
@@ -508,59 +518,59 @@ const SearchListings = () => {
                   </label>
 
                   <label className="space-y-1.5">
-                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--gray-400)]">Proximidade</span>
+                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Proximidade</span>
                     <select
                       value={filters.maxDistanceKm}
                       onChange={(e) => setFilters((c) => ({ ...c, maxDistanceKm: e.target.value }))}
-                      className="form-control"
+                      className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none transition focus:border-[#0A847C] focus:bg-white"
                     >
                       {DISTANCE_OPTIONS.map((o) => (<option key={o.value || 'all'} value={o.value}>{o.label}</option>))}
                     </select>
                   </label>
 
                   <label className="space-y-1.5">
-                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--gray-400)]">Preço Mínimo</span>
+                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Preço Mínimo</span>
                     <Input
                       type="number" min="0" step="0.01"
                       value={filters.minPrice}
                       onChange={(e) => setFilters((c) => ({ ...c, minPrice: e.target.value }))}
                       placeholder="Ex: 50"
-                      className="h-10 rounded-[var(--radius-md)] border-[var(--gray-200)] bg-[var(--gray-50)] text-sm focus-visible:ring-[var(--green-700)] focus:bg-white"
+                      className="h-10 rounded-xl border-slate-200 bg-slate-50 text-sm focus-visible:ring-[#0A847C] focus:bg-white"
                     />
                   </label>
 
                   <label className="space-y-1.5">
-                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--gray-400)]">Preço Máximo</span>
+                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Preço Máximo</span>
                     <Input
                       type="number" min="0" step="0.01"
                       value={filters.maxPrice}
                       onChange={(e) => setFilters((c) => ({ ...c, maxPrice: e.target.value }))}
                       placeholder="Ex: 300"
-                      className="h-10 rounded-[var(--radius-md)] border-[var(--gray-200)] bg-[var(--gray-50)] text-sm focus-visible:ring-[var(--green-700)] focus:bg-white"
+                      className="h-10 rounded-xl border-slate-200 bg-slate-50 text-sm focus-visible:ring-[#0A847C] focus:bg-white"
                     />
                   </label>
 
                   <label className="space-y-1.5 sm:col-span-2">
-                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--gray-400)]">Ordenar por</span>
+                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ordenar por</span>
                     <select
                       value={filters.sortBy}
                       onChange={(e) => setFilters((c) => ({ ...c, sortBy: e.target.value }))}
-                      className="form-control"
+                      className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none transition focus:border-[#0A847C] focus:bg-white"
                     >
                       {SORT_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
                     </select>
                   </label>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--gray-100)] pt-4">
-                  <p className="text-xs text-[var(--gray-400)]">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                  <p className="text-xs text-slate-400">
                     {activeFiltersCount > 0 ? `${activeFiltersCount} filtro(s) ativo(s)` : 'Nenhum filtro adicional aplicado'}
                   </p>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={resetAdvancedFilters}
-                    className="h-8 rounded-[var(--radius-sm)] border-[var(--gray-200)] px-3 text-xs text-[var(--gray-600)] hover:bg-[var(--gray-50)]"
+                    className="h-8 rounded-lg border-slate-200 px-3 text-xs text-slate-600 hover:bg-slate-50"
                   >
                     Limpar filtros
                   </Button>
@@ -568,63 +578,59 @@ const SearchListings = () => {
               </div>
             )}
           </form>
-          </div>
-        </div>
+          </div> {/* fecha max-width 680px */}
+        </div> {/* fecha flex center */}
       </section>
 
-      <main className="page-shell">
+      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '40px 24px' }}>
         {error && (
-          <div className="mb-6 rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 text-center">
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 text-center">
             {error}
           </div>
         )}
 
         {/* RESULTADOS */}
         {loading ? (
-          <div className="empty-panel">
-            <div className="h-8 w-8 rounded-full border-2 border-[var(--green-700)]/30 border-t-[var(--green-700)] animate-spin" />
+          <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+            <div className="h-8 w-8 rounded-full border-2 border-[#0A847C]/30 border-t-[#0A847C] animate-spin" />
             <span className="text-sm">Carregando anúncios...</span>
           </div>
         ) : !isSearchActive ? (
           /* NOVO ESTADO: NADA DIGITADO E NENHUM FILTRO */
-          <div className="empty-panel">
-            <div className="empty-panel-icon">
-              <Search size={28} />
-            </div>
-            <h2 className="text-lg font-semibold text-[var(--gray-900)]">Comece sua busca</h2>
-            <p className="text-sm text-[var(--gray-400)] max-w-xs">
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl">⌨️</div>
+            <h2 className="text-lg font-semibold text-slate-700">Comece sua busca</h2>
+            <p className="text-sm text-slate-400 max-w-xs">
               Digite o que você procura ou aplique um filtro para encontrar serviços e produtos.
             </p>
           </div>
         ) : filteredListings.length > 0 ? (
           <>
-            <div className="results-summary">
-              <p className="text-sm text-[var(--gray-600)]">
-                <span className="font-semibold text-[var(--gray-900)]">{filteredListings.length}</span> anúncio(s) encontrado(s)
+            <div className="mb-6 flex items-center justify-between">
+              <p className="text-sm text-slate-500">
+                <span className="font-semibold text-slate-800">{filteredListings.length}</span> anúncio(s) encontrado(s)
                 {filters.categoryId && categories.find(c => String(c.id) === String(filters.categoryId)) && (
-                  <span className="ml-1 text-[var(--green-700)] font-medium">
+                  <span className="ml-1 text-[#0A847C] font-medium">
                     em {categories.find(c => String(c.id) === String(filters.categoryId))?.name}
                   </span>
                 )}
               </p>
             </div>
-            <div className="internal-results-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
               {filteredListings.map(renderListingCard)}
             </div>
           </>
         ) : (
-          <div className="empty-panel">
-            <div className="empty-panel-icon">
-              <SearchX size={28} />
-            </div>
-            <h2 className="text-lg font-semibold text-[var(--gray-900)]">Nenhum anúncio encontrado</h2>
-            <p className="text-sm text-[var(--gray-400)] max-w-xs">
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl">🔍</div>
+            <h2 className="text-lg font-semibold text-slate-700">Nenhum anúncio encontrado</h2>
+            <p className="text-sm text-slate-400 max-w-xs">
               Tente ajustar os filtros ou buscar por outro termo.
             </p>
             {activeFiltersCount > 0 && (
               <button
                 onClick={resetAdvancedFilters}
-                className="mt-2 text-sm font-medium text-[var(--green-700)] hover:underline"
+                className="mt-2 text-sm font-medium text-[#0A847C] hover:underline"
               >
                 Limpar todos os filtros
               </button>
