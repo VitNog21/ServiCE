@@ -825,3 +825,141 @@ input  { font-family: var(--font-body); }
   width: 220px; /* Fixa a largura dos cards para não achatarem */
   flex-shrink: 0;
 }
+
+/* ============================================
+   MEDIA QUERIES - RESPONSIVIDADE COMPLETA
+   ============================================ */
+
+/* Telas Ultra Pequenas (< 480px) */
+@media (max-width: 479px) {
+  .main-header {
+    padding: 10px 12px;
+    height: auto;
+    min-height: 70px;
+  }
+
+  .header-logo {
+    height: 28px;
+  }
+
+  .header-nav {
+    gap: 12px;
+  }
+
+  .btn-login-header {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .user-menu {
+    gap: 12px;
+  }
+
+  .user-profile-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .main-content {
+    width: calc(100% - 24px);
+    padding: 16px 0 40px;
+  }
+
+  .banner-slider {
+    min-height: 180px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .slide-content h2 {
+    font-size: 22px;
+  }
+
+  .slide-content p {
+    font-size: 13px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .categories-row {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-right: 12px;
+  }
+
+  .category-pill {
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 12px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+  }
+
+  .filter-panel {
+    padding: 16px;
+  }
+}
+
+/* Telas Pequenas (480px - 768px) */
+@media (max-width: 768px) and (min-width: 480px) {
+  .main-header {
+    padding: 12px 16px;
+  }
+
+  .header-logo {
+    height: 30px;
+  }
+
+  .main-content {
+    width: calc(100% - 32px);
+    padding: 20px 0 50px;
+  }
+
+  .banner-slider {
+    min-height: 200px;
+    padding: 24px;
+  }
+
+  .slide-content h2 {
+    font-size: 26px;
+  }
+
+  .section-title {
+    font-size: 20px;
+  }
+
+  .page-title {
+    font-size: 28px;
+  }
+
+  .internal-results-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Telas Médias (> 768px) */
+@media (min-width: 769px) {
+  .main-header {
+    padding: 0 24px;
+    height: 70px;
+  }
+
+  .main-content {
+    width: calc(100% - 64px);
+    padding: 32px 0 72px;
+  }
+
+  .banner-slider {
+    min-height: 280px;
+    padding: 44px;
+  }
+}

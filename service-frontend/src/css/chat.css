@@ -171,3 +171,121 @@
 .chat-send-btn:hover:not(:disabled) {
   background-color: var(--green-800);
 }
+
+/* =========================================
+   RESPONSIVIDADE
+   ========================================= */
+
+/* Ultra pequenas (< 480px) */
+@media (max-width: 479px) {
+  .chat-page {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .chat-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--gray-100);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .chat-sidebar-header {
+    padding: 12px;
+  }
+
+  .chat-sidebar-header h2 {
+    font-size: 18px;
+  }
+
+  .chat-main-content {
+    width: 100%;
+    min-height: calc(100vh - 200px);
+  }
+
+  .chat-conversation-item {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .chat-message-bubble {
+    max-width: 85%;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .chat-input-area {
+    padding: 12px;
+  }
+
+  .chat-input {
+    font-size: 13px;
+    padding: 10px;
+  }
+
+  .chat-send-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Pequenas (480px - 768px) */
+@media (max-width: 768px) and (min-width: 480px) {
+  .chat-page {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .chat-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--gray-100);
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  .chat-sidebar-header {
+    padding: 14px;
+  }
+
+  .chat-main-content {
+    width: 100%;
+    min-height: calc(100vh - 250px);
+  }
+
+  .chat-conversation-item {
+    padding: 13px;
+  }
+
+  .chat-message-bubble {
+    max-width: 80%;
+  }
+
+  .chat-input-area {
+    padding: 14px;
+  }
+}
+
+/* Médias em diante (> 768px) */
+@media (min-width: 769px) {
+  .chat-page {
+    display: flex;
+    height: 100vh;
+  }
+
+  .chat-sidebar {
+    width: 320px;
+    border-right: 1px solid var(--gray-100);
+  }
+
+  .chat-main-content {
+    width: calc(100% - 320px);
+  }
+
+  .chat-message-bubble {
+    max-width: 70%;
+  }
+}

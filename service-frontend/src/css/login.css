@@ -177,3 +177,139 @@
     border-radius: var(--radius-lg);
   }
 }
+
+/* =========================================
+   RESPONSIVIDADE COMPLETA
+   ========================================= */
+
+/* Ultra pequenas (< 480px) */
+@media (max-width: 479px) {
+  .login-container {
+    padding: 16px 12px;
+    min-height: auto;
+  }
+
+  .login-card {
+    max-width: 100%;
+    padding: 24px 16px;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .login-logo {
+    height: 36px;
+    margin-bottom: 24px;
+  }
+
+  .login-title {
+    font-size: 20px;
+    margin-bottom: 24px;
+  }
+
+  .input-group {
+    margin-bottom: 16px;
+  }
+
+  .input-group label {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .input-group input {
+    min-height: 44px;
+    padding: 12px 14px;
+    font-size: 14px;
+    border-radius: var(--radius-sm);
+  }
+
+  .alert {
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  .btn-primary,
+  .btn-google {
+    min-height: 44px;
+    font-size: 15px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+  }
+
+  .btn-primary {
+    margin-top: 12px;
+  }
+
+  .divider {
+    margin: 20px 0;
+    font-size: 12px;
+  }
+
+  .register-link {
+    margin-top: 24px;
+    font-size: 13px;
+  }
+}
+
+/* Pequenas (480px - 768px) */
+@media (max-width: 768px) and (min-width: 480px) {
+  .login-container {
+    padding: 24px 16px;
+  }
+
+  .login-card {
+    max-width: 100%;
+    padding: 32px 24px;
+    border-radius: var(--radius-lg);
+  }
+
+  .login-logo {
+    height: 40px;
+    margin-bottom: 28px;
+  }
+
+  .login-title {
+    font-size: 22px;
+    margin-bottom: 28px;
+  }
+
+  .input-group {
+    margin-bottom: 18px;
+  }
+
+  .input-group input {
+    min-height: 44px;
+    padding: 12px 14px;
+  }
+
+  .btn-primary,
+  .btn-google {
+    min-height: 44px;
+  }
+
+  .register-link {
+    margin-top: 28px;
+  }
+}
+
+/* Médias em diante (> 768px) */
+@media (min-width: 769px) {
+  .login-container {
+    padding: 32px 20px;
+    min-height: 100vh;
+  }
+
+  .login-card {
+    max-width: 440px;
+    padding: 44px;
+  }
+
+  .input-group input {
+    min-height: 52px;
+  }
+
+  .btn-primary,
+  .btn-google {
+    min-height: 54px;
+  }
+}

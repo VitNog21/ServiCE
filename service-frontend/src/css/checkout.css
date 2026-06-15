@@ -1,0 +1,108 @@
+/* =========================================
+   CHECKOUT - RESPONSIVIDADE COMPLETA
+   ========================================= */
+
+/* Ultra pequenas (< 480px) */
+@media (max-width: 479px) {
+  /* Centralização da container principal */
+  .checkout-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+
+  /* Melhorar padding em telas ultra pequenas */
+  .checkout-wrapper {
+    width: calc(100% - 24px);
+  }
+
+  /* Garantir que os cards ocupem todo o espaço disponível */
+  .checkout-card {
+    width: 100%;
+  }
+
+  /* Melhorar espaçamento em inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  /* Garantir botões com tamanho mínimo */
+  button {
+    min-height: 44px;
+  }
+}
+
+/* Pequenas (480px - 768px) */
+@media (max-width: 768px) and (min-width: 480px) {
+  .checkout-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+
+  .checkout-wrapper {
+    width: calc(100% - 32px);
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  select {
+    min-height: 44px;
+  }
+}
+
+/* Médias em diante (> 768px) */
+@media (min-width: 769px) {
+  .checkout-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+
+  .checkout-wrapper {
+    width: 100%;
+    max-width: 640px;
+  }
+}
+
+/* =========================================
+   GARANTIR CENTRALIZAÇÃO
+   ========================================= */
+
+/* Garantir que max-w-2xl funcione bem com mx-auto */
+.max-w-2xl {
+  max-width: 42rem;
+}
+
+/* Breakpoint específico para garantir responsividade */
+@media (max-width: 640px) {
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+}
+
+/* =========================================
+   FORMULÁRIOS E INPUTS
+   ========================================= */
+
+/* Garantir que inputs sejam touch-friendly */
+input, select, textarea, button {
+  min-height: 44px;
+}
+
+/* Melhorar viewport em mobile */
+@media (max-width: 479px) {
+  body {
+    font-size: 16px; /* Evita zoom automático em inputs */
+  }
+}
