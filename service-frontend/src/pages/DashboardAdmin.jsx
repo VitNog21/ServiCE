@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { 
   Users, LayoutList, AlertOctagon, TrendingUp, ArrowLeft, LogOut, Settings, 
-  ShieldAlert, CheckCircle, XCircle, Trash2, UserX, Search, Calendar, DollarSign, Filter
+  ShieldAlert, CheckCircle, XCircle, Trash2, UserX, Search, Calendar, DollarSign, Filter,
+  Menu, X
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -24,6 +25,11 @@ export default function DashboardAdmin() {
   const [adminUser, setAdminUser] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   
+  // ==========================================
+  // ESTADO MOBILE (UI)
+  // ==========================================
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // ==========================================
   // FILTROS (DATA E CATEGORIA)
   // ==========================================
@@ -330,13 +336,26 @@ export default function DashboardAdmin() {
   if (!adminUser) return null;
 
   return (
-    <div className="flex min-h-screen bg-[var(--gray-50)] font-sans">
+    <div className="flex h-screen bg-[var(--gray-50)] font-sans overflow-hidden">
       
-      {/* SIDEBAR LATERAL (MANTIDA IGUAL) */}
-      <aside className="w-64 bg-[var(--gray-900)] text-slate-300 flex flex-col shadow-xl z-10 sticky top-0 h-screen">
-        <div className="p-6 flex items-center justify-center border-b border-slate-800">
-          <img src="/assets/logo_service.png" alt="ServiCE" className="h-8 brightness-0 invert opacity-90" />
-          <span className="ml-2 text-xs font-bold uppercase tracking-widest text-red-400">Admin</span>
+      {/* OVERLAY MOBILE PARA BARRA LATERAL */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* SIDEBAR LATERAL RESPONSIVA */}
+      <aside className={`w-64 bg-[var(--gray-900)] text-slate-300 flex flex-col shadow-xl z-40 fixed md:sticky top-0 h-screen transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 flex items-center justify-between md:justify-center border-b border-slate-800">
+          <div className="flex items-center">
+            <img src="/assets/logo_service.png" alt="ServiCE" className="h-8 brightness-0 invert opacity-90" />
+            <span className="ml-2 text-xs font-bold uppercase tracking-widest text-red-400">Admin</span>
+          </div>
+          <button className="md:hidden text-slate-400 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>
+            <X size={24} />
+          </button>
         </div>
         <div className="p-6 flex flex-col items-center border-b border-slate-800">
           {adminUser?.avatar_url ? (
@@ -347,14 +366,14 @@ export default function DashboardAdmin() {
           <h3 className="mt-3 font-semibold text-white text-sm text-center">{adminUser?.full_name || 'Administrador'}</h3>
         </div>
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          <button onClick={() => setActiveTab('overview')} className={`w-full flex items-center gap-3 rounded-[var(--radius-sm)] px-4 py-3 transition-colors text-left ${activeTab === 'overview' ? 'bg-[var(--green-700)] text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={() => { setActiveTab('overview'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 rounded-[var(--radius-sm)] px-4 py-3 transition-colors text-left ${activeTab === 'overview' ? 'bg-[var(--green-700)] text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
             <TrendingUp size={20} /> <span className="font-medium">Visão Geral</span>
           </button>
-          <button onClick={() => setActiveTab('moderation')} className={`w-full flex items-center justify-between rounded-[var(--radius-sm)] px-4 py-3 transition-colors text-left ${activeTab === 'moderation' ? 'bg-[var(--green-700)] text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={() => { setActiveTab('moderation'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center justify-between rounded-[var(--radius-sm)] px-4 py-3 transition-colors text-left ${activeTab === 'moderation' ? 'bg-[var(--green-700)] text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
             <div className="flex items-center gap-3"><ShieldAlert size={20} /> <span className="font-medium">Moderação</span></div>
             {stats.pendingReports > 0 && <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{stats.pendingReports}</span>}
           </button>
-          <button onClick={() => setActiveTab('users')} className={`w-full flex items-center gap-3 rounded-[var(--radius-sm)] px-4 py-3 transition-colors text-left ${activeTab === 'users' ? 'bg-[var(--green-700)] text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+          <button onClick={() => { setActiveTab('users'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 rounded-[var(--radius-sm)] px-4 py-3 transition-colors text-left ${activeTab === 'users' ? 'bg-[var(--green-700)] text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
             <Users size={20} /> <span className="font-medium">Buscar Usuários</span>
           </button>
         </nav>
@@ -368,263 +387,284 @@ export default function DashboardAdmin() {
         </div>
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      {/* ÁREA DO CONTEÚDO PRINCIPAL COM SCROLL INDEPENDENTE */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen">
         
-        {/* CABEÇALHO E FILTROS */}
-        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[var(--gray-900)]">
-              {activeTab === 'overview' && 'Inteligência de Negócio'}
-              {activeTab === 'moderation' && 'Central de Moderação'}
-              {activeTab === 'users' && 'Diretório de Usuários'}
-            </h1>
-            <p className="text-[var(--gray-600)] mt-1">
-              {activeTab === 'overview' && 'Acompanhe as 8 principais métricas de saúde do marketplace.'}
-              {activeTab === 'moderation' && 'Analise denúncias, exclua anúncios falsos e bana infratores.'}
-              {activeTab === 'users' && 'Busque perfis e analise o histórico completo de cada anunciante.'}
-            </p>
+        {/* HEADER MOBILE */}
+        <div className="md:hidden flex items-center justify-between bg-white p-4 border-b border-[var(--gray-200)] shadow-sm z-20">
+          <div className="flex items-center gap-2">
+            <img src="/assets/logo_service.png" alt="ServiCE" className="h-6" />
+            <span className="text-xs font-bold uppercase tracking-widest text-red-500">Admin</span>
           </div>
+          <button onClick={() => setIsMobileMenuOpen(true)} className="text-[var(--gray-600)] hover:text-[var(--gray-900)]">
+            <Menu size={24} />
+          </button>
+        </div>
 
-          {activeTab === 'overview' && (
-            <div className="flex items-center gap-3 bg-white p-2 rounded-[var(--radius-md)] shadow-sm border border-[var(--gray-200)]">
-              <div className="flex items-center gap-2 px-2 border-r border-[var(--gray-100)]">
-                <Calendar size={16} className="text-[var(--gray-400)]" />
-                <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="bg-transparent border-0 text-sm font-medium text-[var(--gray-600)] focus:ring-0 cursor-pointer">
-                  <option value="all">Todo o período</option>
-                  <option value="30d">Últimos 30 dias</option>
-                  <option value="6m">Últimos 6 meses</option>
-                  <option value="1y">Último 1 ano</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2 px-2">
-                <Filter size={16} className="text-[var(--gray-400)]" />
-                <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="bg-transparent border-0 text-sm font-medium text-[var(--gray-600)] focus:ring-0 cursor-pointer max-w-[150px]">
-                  <option value="all">Todas as categorias</option>
-                  {categoriesDropdown.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
+        {/* CONTEÚDO DA PÁGINA */}
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+          
+          {/* CABEÇALHO E FILTROS */}
+          <header className="mb-6 md:mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-[var(--gray-900)]">
+                {activeTab === 'overview' && 'Inteligência de Negócio'}
+                {activeTab === 'moderation' && 'Central de Moderação'}
+                {activeTab === 'users' && 'Diretório de Usuários'}
+              </h1>
+              <p className="text-[var(--gray-600)] mt-1 text-sm md:text-base">
+                {activeTab === 'overview' && 'Acompanhe as 8 principais métricas de saúde do marketplace.'}
+                {activeTab === 'moderation' && 'Analise denúncias, exclua anúncios falsos e bana infratores.'}
+                {activeTab === 'users' && 'Busque perfis e analise o histórico completo de cada anunciante.'}
+              </p>
             </div>
-          )}
-        </header>
 
-        {loading ? (
-          <div className="flex h-64 items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-4 border-[var(--green-700)] border-t-transparent"></div></div>
-        ) : (
-          <>
-            {/* =========================================================
-                ABA: VISÃO GERAL (OS 8 GRÁFICOS)
-                ========================================================= */}
             {activeTab === 'overview' && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                
-                {/* 5 KPIS PRINCIPAIS */}
-                <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5 mb-8">
-                  <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
-                    <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Montante Vendido (GMV)</p>
-                    <p className="text-2xl font-bold text-[var(--green-700)] mt-2">{formatCurrency(stats.totalGMV)}</p>
-                  </div>
-                  <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
-                    <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Serviços Concluídos</p>
-                    <p className="text-2xl font-bold text-[var(--gray-900)] mt-2">{stats.totalSold}</p>
-                  </div>
-                  <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
-                    <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Anúncios Ativos</p>
-                    <p className="text-2xl font-bold text-[var(--gray-900)] mt-2">{stats.activeListings}</p>
-                  </div>
-                  <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
-                    <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Total de Usuários</p>
-                    <p className="text-2xl font-bold text-[var(--gray-900)] mt-2">{stats.totalUsers}</p>
-                  </div>
-                  <div className="rounded-[var(--radius-md)] border border-red-100 bg-red-50 p-5 shadow-sm">
-                    <p className="text-xs font-semibold text-red-600 uppercase">Atenção (Denúncias)</p>
-                    <p className="text-2xl font-bold text-red-700 mt-2">{stats.pendingReports}</p>
-                  </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white p-2 rounded-[var(--radius-md)] shadow-sm border border-[var(--gray-200)]">
+                <div className="flex items-center gap-2 px-2 py-1 sm:py-0 border-b sm:border-b-0 sm:border-r border-[var(--gray-100)]">
+                  <Calendar size={16} className="text-[var(--gray-400)] shrink-0" />
+                  <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="bg-transparent border-0 text-sm font-medium text-[var(--gray-600)] focus:ring-0 cursor-pointer w-full">
+                    <option value="all">Todo o período</option>
+                    <option value="30d">Últimos 30 dias</option>
+                    <option value="6m">Últimos 6 meses</option>
+                    <option value="1y">Último 1 ano</option>
+                  </select>
                 </div>
-
-                {/* OS 8 GRÁFICOS */}
-                <div className="grid gap-6 md:grid-cols-2 mb-8">
-                  
-                  {/* Gráfico 1: Receita Mensal */}
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">1. Receita Gerada por Mês (GMV)</h3>
-                    <div className="h-64"><ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={chartsData.revenueEvolution}>
-                        <defs><linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0F6E56" stopOpacity={0.3}/><stop offset="95%" stopColor="#0F6E56" stopOpacity={0}/></linearGradient></defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                        <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `R$${val}`} />
-                        <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={{borderRadius: '8px', border: 'none'}} />
-                        <Area type="monotone" dataKey="total" name="Receita" stroke="#0F6E56" fillOpacity={1} fill="url(#colorGmv)" />
-                      </AreaChart>
-                    </ResponsiveContainer></div>
-                  </div>
-
-                  {/* Gráfico 2: Evolução de Vendas */}
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">2. Serviços Concluídos por Mês</h3>
-                    <div className="h-64"><ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartsData.salesVolume}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                        <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
-                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
-                        <Bar dataKey="total" name="Serviços Vendidos" fill="#1a8a6d" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer></div>
-                  </div>
-
-                  {/* Gráfico 3: Crescimento de Usuários */}
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">3. Entrada de Novos Usuários</h3>
-                    <div className="h-64"><ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartsData.usersEvolution}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                        <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
-                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
-                        <Line type="monotone" dataKey="total" name="Novos Cadastros" stroke="#3B82F6" strokeWidth={3} dot={{r: 4}} />
-                      </LineChart>
-                    </ResponsiveContainer></div>
-                  </div>
-
-                  {/* Gráfico 4: Status dos Anúncios */}
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">4. Distribuição de Status dos Anúncios</h3>
-                    <div className="h-64"><ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={chartsData.listingsByStatus} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                          {chartsData.listingsByStatus.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                        </Pie>
-                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
-                      </PieChart>
-                    </ResponsiveContainer></div>
-                  </div>
-
-                  {/* Gráfico 5: Top Categorias por Anúncio */}
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">5. Demanda por Categoria (Top 6)</h3>
-                    <div className="h-64"><ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={chartsData.listingsByCategory} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({name}) => name}>
-                          {chartsData.listingsByCategory.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
-                      </PieChart>
-                    </ResponsiveContainer></div>
-                  </div>
-
-                  {/* Gráfico 6: Ticket Médio por Categoria */}
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">6. Ticket Médio por Categoria</h3>
-                    <div className="h-64"><ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartsData.avgPriceByCategory} layout="vertical" margin={{ left: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                        <XAxis type="number" axisLine={false} tickLine={false} tickFormatter={(val) => `R$${val}`} />
-                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={100} />
-                        <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={{borderRadius: '8px', border: 'none'}} />
-                        <Bar dataKey="media" name="Preço Médio" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer></div>
-                  </div>
-
-                  {/* Gráfico 7: Evolução de Denúncias */}
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">7. Ocorrências / Denúncias no Tempo</h3>
-                    <div className="h-64"><ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartsData.reportsEvolution}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                        <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
-                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
-                        <Line type="step" dataKey="total" name="Denúncias" stroke="#EF4444" strokeWidth={3} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer></div>
-                  </div>
-
-                  {/* Gráfico 8: Status das Denúncias */}
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">8. Eficiência da Moderação (Status)</h3>
-                    <div className="h-64"><ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={chartsData.reportsByStatus} cx="50%" cy="50%" innerRadius={40} outerRadius={80} dataKey="value" label={({name}) => name}>
-                          {chartsData.reportsByStatus.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                        </Pie>
-                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
-                      </PieChart>
-                    </ResponsiveContainer></div>
-                  </div>
-
+                <div className="flex items-center gap-2 px-2 py-1 sm:py-0">
+                  <Filter size={16} className="text-[var(--gray-400)] shrink-0" />
+                  <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="bg-transparent border-0 text-sm font-medium text-[var(--gray-600)] focus:ring-0 cursor-pointer w-full sm:max-w-[150px]">
+                    <option value="all">Todas as categorias</option>
+                    {categoriesDropdown.map(cat => (
+                      <option key={cat.id} value={cat.id} className="truncate">{cat.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             )}
+          </header>
 
-            {/* ABAS MODERAÇÃO E USUÁRIOS (MANTIDAS IGUAIS AO CÓDIGO ANTERIOR) */}
-            {activeTab === 'moderation' && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white shadow-sm overflow-hidden">
-                  <div className="border-b border-[var(--gray-200)] px-6 py-5 bg-[var(--gray-50)] flex justify-between items-center">
-                    <h2 className="text-lg font-bold text-[var(--gray-900)] flex items-center gap-2"><AlertOctagon className="text-red-500" />Lista de Denúncias Pendentes</h2>
-                    <span className="text-sm font-medium text-[var(--gray-400)]">{allReports.length} registros</span>
+          {loading ? (
+            <div className="flex h-64 items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-4 border-[var(--green-700)] border-t-transparent"></div></div>
+          ) : (
+            <>
+              {/* =========================================================
+                  ABA: VISÃO GERAL (OS 8 GRÁFICOS)
+                  ========================================================= */}
+              {activeTab === 'overview' && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  
+                  {/* 5 KPIS PRINCIPAIS */}
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mb-8">
+                    <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
+                      <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Montante Vendido (GMV)</p>
+                      <p className="text-2xl font-bold text-[var(--green-700)] mt-2">{formatCurrency(stats.totalGMV)}</p>
+                    </div>
+                    <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
+                      <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Serviços Concluídos</p>
+                      <p className="text-2xl font-bold text-[var(--gray-900)] mt-2">{stats.totalSold}</p>
+                    </div>
+                    <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
+                      <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Anúncios Ativos</p>
+                      <p className="text-2xl font-bold text-[var(--gray-900)] mt-2">{stats.activeListings}</p>
+                    </div>
+                    <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
+                      <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Total de Usuários</p>
+                      <p className="text-2xl font-bold text-[var(--gray-900)] mt-2">{stats.totalUsers}</p>
+                    </div>
+                    <div className="rounded-[var(--radius-md)] border border-red-100 bg-red-50 p-5 shadow-sm">
+                      <p className="text-xs font-semibold text-red-600 uppercase">Atenção (Denúncias)</p>
+                      <p className="text-2xl font-bold text-red-700 mt-2">{stats.pendingReports}</p>
+                    </div>
                   </div>
-                  {allReports.length === 0 ? (
-                    <div className="p-16 text-center text-[var(--gray-400)]"><ShieldAlert className="mx-auto h-16 w-16 text-emerald-300 mb-4" /><p className="text-xl font-semibold text-[var(--gray-600)]">Tudo limpo por aqui!</p></div>
-                  ) : (
-                    <table className="w-full text-left text-sm text-[var(--gray-600)]">
-                      <thead className="bg-[var(--gray-50)] text-xs uppercase text-[var(--gray-400)] border-b border-[var(--gray-200)]">
-                        <tr><th className="px-6 py-4">Anúncio</th><th className="px-6 py-4">Motivo</th><th className="px-6 py-4">Denunciante</th><th className="px-6 py-4 text-right">Ações</th></tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--gray-100)]">
-                        {allReports.map((report) => (
-                          <tr key={report.id} className="hover:bg-[var(--gray-50)]">
-                            <td className="px-6 py-4 font-medium text-[var(--gray-900)] max-w-[200px] truncate">{report.listing ? <Link to={`/detalhes/${report.listing.id}`} className="hover:underline">{report.listing.title}</Link> : 'Excluído'}</td>
-                            <td className="px-6 py-4"><span className="inline-block rounded-[var(--radius-sm)] bg-red-50 text-red-700 px-2.5 py-1 text-xs font-semibold truncate max-w-[200px]">{report.reason}</span></td>
-                            <td className="px-6 py-4">{report.reporter?.full_name || 'Anônimo'}</td>
-                            <td className="px-6 py-4 text-right">
-                              <div className="flex justify-end gap-2">
-                                <button onClick={() => handleDismissReport(report.id)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[var(--gray-600)] bg-[var(--gray-100)] rounded-[var(--radius-sm)]"><CheckCircle size={16} /> Ignorar</button>
-                                <button onClick={() => handleDeleteListing(report.id, report.listing?.id)} disabled={!report.listing} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-[var(--radius-sm)] disabled:opacity-50"><Trash2 size={16} /> Apagar Anúncio</button>
-                                <button onClick={() => handleInitiateBan(report.listing?.owner_id)} disabled={!report.listing} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-[var(--gray-900)] rounded-[var(--radius-sm)] disabled:opacity-50"><UserX size={16} /> Banir Usuário</button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+
+                  {/* OS 8 GRÁFICOS */}
+                  <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 mb-8">
+                    
+                    {/* Gráfico 1: Receita Mensal */}
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
+                      <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">1. Receita Gerada por Mês (GMV)</h3>
+                      <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartsData.revenueEvolution}>
+                          <defs><linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0F6E56" stopOpacity={0.3}/><stop offset="95%" stopColor="#0F6E56" stopOpacity={0}/></linearGradient></defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                          <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `R$${val}`} width={60} />
+                          <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={{borderRadius: '8px', border: 'none'}} />
+                          <Area type="monotone" dataKey="total" name="Receita" stroke="#0F6E56" fillOpacity={1} fill="url(#colorGmv)" />
+                        </AreaChart>
+                      </ResponsiveContainer></div>
+                    </div>
+
+                    {/* Gráfico 2: Evolução de Vendas */}
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
+                      <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">2. Serviços Concluídos por Mês</h3>
+                      <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartsData.salesVolume}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                          <YAxis axisLine={false} tickLine={false} allowDecimals={false} width={40} />
+                          <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
+                          <Bar dataKey="total" name="Serviços Vendidos" fill="#1a8a6d" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer></div>
+                    </div>
+
+                    {/* Gráfico 3: Crescimento de Usuários */}
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
+                      <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">3. Entrada de Novos Usuários</h3>
+                      <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartsData.usersEvolution}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                          <YAxis axisLine={false} tickLine={false} allowDecimals={false} width={40} />
+                          <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
+                          <Line type="monotone" dataKey="total" name="Novos Cadastros" stroke="#3B82F6" strokeWidth={3} dot={{r: 4}} />
+                        </LineChart>
+                      </ResponsiveContainer></div>
+                    </div>
+
+                    {/* Gráfico 4: Status dos Anúncios */}
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
+                      <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">4. Distribuição de Status dos Anúncios</h3>
+                      <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={chartsData.listingsByStatus} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value" label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                            {chartsData.listingsByStatus.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                          </Pie>
+                          <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
+                        </PieChart>
+                      </ResponsiveContainer></div>
+                    </div>
+
+                    {/* Gráfico 5: Top Categorias por Anúncio */}
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
+                      <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">5. Demanda por Categoria (Top 6)</h3>
+                      <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={chartsData.listingsByCategory} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({name}) => name}>
+                            {chartsData.listingsByCategory.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                          </Pie>
+                          <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
+                        </PieChart>
+                      </ResponsiveContainer></div>
+                    </div>
+
+                    {/* Gráfico 6: Ticket Médio por Categoria */}
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
+                      <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">6. Ticket Médio por Categoria</h3>
+                      <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartsData.avgPriceByCategory} layout="vertical" margin={{ left: 10 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                          <XAxis type="number" axisLine={false} tickLine={false} tickFormatter={(val) => `R$${val}`} />
+                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={90} />
+                          <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={{borderRadius: '8px', border: 'none'}} />
+                          <Bar dataKey="media" name="Preço Médio" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer></div>
+                    </div>
+
+                    {/* Gráfico 7: Evolução de Denúncias */}
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
+                      <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">7. Ocorrências / Denúncias no Tempo</h3>
+                      <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartsData.reportsEvolution}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                          <YAxis axisLine={false} tickLine={false} allowDecimals={false} width={40} />
+                          <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
+                          <Line type="step" dataKey="total" name="Denúncias" stroke="#EF4444" strokeWidth={3} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer></div>
+                    </div>
+
+                    {/* Gráfico 8: Status das Denúncias */}
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
+                      <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">8. Eficiência da Moderação (Status)</h3>
+                      <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={chartsData.reportsByStatus} cx="50%" cy="50%" innerRadius={40} outerRadius={80} dataKey="value" label={({name}) => name}>
+                            {chartsData.reportsByStatus.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                          </Pie>
+                          <Tooltip contentStyle={{borderRadius: '8px', border: 'none'}} />
+                        </PieChart>
+                      </ResponsiveContainer></div>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+              {/* ABA MODERAÇÃO */}
+              {activeTab === 'moderation' && (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-500 w-full">
+                  <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white shadow-sm overflow-hidden w-full">
+                    <div className="border-b border-[var(--gray-200)] px-4 md:px-6 py-5 bg-[var(--gray-50)] flex justify-between items-center">
+                      <h2 className="text-base md:text-lg font-bold text-[var(--gray-900)] flex items-center gap-2"><AlertOctagon className="text-red-500" />Lista de Denúncias</h2>
+                      <span className="text-sm font-medium text-[var(--gray-400)]">{allReports.length} registros</span>
+                    </div>
+                    {allReports.length === 0 ? (
+                      <div className="p-10 md:p-16 text-center text-[var(--gray-400)]"><ShieldAlert className="mx-auto h-16 w-16 text-emerald-300 mb-4" /><p className="text-xl font-semibold text-[var(--gray-600)]">Tudo limpo por aqui!</p></div>
+                    ) : (
+                      <div className="overflow-x-auto w-full">
+                        <table className="w-full text-left text-sm text-[var(--gray-600)] min-w-[700px]">
+                          <thead className="bg-[var(--gray-50)] text-xs uppercase text-[var(--gray-400)] border-b border-[var(--gray-200)]">
+                            <tr><th className="px-6 py-4">Anúncio</th><th className="px-6 py-4">Motivo</th><th className="px-6 py-4">Denunciante</th><th className="px-6 py-4 text-right">Ações</th></tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--gray-100)]">
+                            {allReports.map((report) => (
+                              <tr key={report.id} className="hover:bg-[var(--gray-50)]">
+                                <td className="px-6 py-4 font-medium text-[var(--gray-900)] max-w-[200px] truncate">{report.listing ? <Link to={`/detalhes/${report.listing.id}`} className="hover:underline">{report.listing.title}</Link> : 'Excluído'}</td>
+                                <td className="px-6 py-4"><span className="inline-block rounded-[var(--radius-sm)] bg-red-50 text-red-700 px-2.5 py-1 text-xs font-semibold truncate max-w-[200px]">{report.reason}</span></td>
+                                <td className="px-6 py-4">{report.reporter?.full_name || 'Anônimo'}</td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <button onClick={() => handleDismissReport(report.id)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[var(--gray-600)] bg-[var(--gray-100)] rounded-[var(--radius-sm)] hover:bg-[var(--gray-200)]"><CheckCircle size={16} /> Ignorar</button>
+                                    <button onClick={() => handleDeleteListing(report.id, report.listing?.id)} disabled={!report.listing} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-[var(--radius-sm)] hover:bg-red-100 disabled:opacity-50"><Trash2 size={16} /> Apagar</button>
+                                    <button onClick={() => handleInitiateBan(report.listing?.owner_id)} disabled={!report.listing} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-[var(--gray-900)] rounded-[var(--radius-sm)] hover:bg-[var(--gray-800)] disabled:opacity-50"><UserX size={16} /> Banir</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ABA USUÁRIOS */}
+              {activeTab === 'users' && (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-500 w-full">
+                  <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--gray-200)] shadow-sm p-4 md:p-6 mb-6 w-full">
+                    <h2 className="text-lg font-bold text-[var(--gray-900)] mb-4">Pesquisar Anunciantes</h2>
+                    <form onSubmit={handleSearchUsers} className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--gray-400)] h-5 w-5" />
+                        <Input type="text" placeholder="Nome do usuário..." className="pl-10 h-12 bg-[var(--gray-50)] border-[var(--gray-200)] rounded-[var(--radius-md)] w-full" value={searchUserTerm} onChange={(e) => setSearchUserTerm(e.target.value)} />
+                      </div>
+                      <Button type="submit" className="h-12 w-full sm:w-auto px-6 bg-[var(--green-700)] hover:bg-[var(--green-800)] rounded-[var(--radius-md)] text-white">{isSearchingUsers ? 'Buscando...' : 'Pesquisar'}</Button>
+                    </form>
+                  </div>
+                  {usersList.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {usersList.map(u => (
+                        <div key={u.id} className="bg-white rounded-[var(--radius-md)] border border-[var(--gray-200)] p-4 md:p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+                          <div className="flex items-center gap-3 overflow-hidden w-full">
+                            {u.avatar_url ? <img src={u.avatar_url} alt="Avatar" className="w-12 h-12 rounded-full object-cover flex-shrink-0" /> : <div className="w-12 h-12 rounded-full bg-[var(--gray-50)] flex items-center justify-center text-lg flex-shrink-0">👤</div>}
+                            <div className="truncate"><p className="font-semibold text-[var(--gray-900)] truncate">{u.full_name || 'Sem Nome'}</p><p className="text-xs text-[var(--gray-400)]">Desde {new Date(u.created_at).getFullYear()}</p></div>
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => openUserDetails(u)} className="w-full sm:w-auto text-[var(--green-700)] shrink-0">Ver Ficha</Button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              </div>
-            )}
-
-            {activeTab === 'users' && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--gray-200)] shadow-sm p-6 mb-6">
-                  <h2 className="text-lg font-bold text-[var(--gray-900)] mb-4">Pesquisar Anunciantes</h2>
-                  <form onSubmit={handleSearchUsers} className="flex gap-3">
-                    <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--gray-400)] h-5 w-5" /><Input type="text" placeholder="Nome do usuário..." className="pl-10 h-12 bg-[var(--gray-50)] border-[var(--gray-200)] rounded-[var(--radius-md)]" value={searchUserTerm} onChange={(e) => setSearchUserTerm(e.target.value)} /></div>
-                    <Button type="submit" className="h-12 px-6 bg-[var(--green-700)] hover:bg-[var(--green-800)] rounded-[var(--radius-md)] text-white">{isSearchingUsers ? 'Buscando...' : 'Pesquisar'}</Button>
-                  </form>
-                </div>
-                {usersList.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {usersList.map(u => (
-                      <div key={u.id} className="bg-white rounded-[var(--radius-md)] border border-[var(--gray-200)] p-5 shadow-sm flex items-center justify-between">
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          {u.avatar_url ? <img src={u.avatar_url} alt="Avatar" className="w-12 h-12 rounded-full object-cover flex-shrink-0" /> : <div className="w-12 h-12 rounded-full bg-[var(--gray-50)] flex items-center justify-center text-lg flex-shrink-0">👤</div>}
-                          <div className="truncate"><p className="font-semibold text-[var(--gray-900)] truncate">{u.full_name || 'Sem Nome'}</p><p className="text-xs text-[var(--gray-400)]">Desde {new Date(u.created_at).getFullYear()}</p></div>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => openUserDetails(u)} className="ml-3 text-[var(--green-700)]">Ver Ficha</Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </main>
+              )}
+            </>
+          )}
+        </main>
+      </div>
 
       {/* MODAIS COM POSICIONAMENTO CENTRALIZADO (FIXED) */}
       <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
@@ -636,15 +676,15 @@ export default function DashboardAdmin() {
                 <h2 className="text-xl font-bold text-white mt-3">{selectedUserForDetails.full_name || 'Sem Nome'}</h2>
                 <div className="flex items-center gap-1 text-[var(--gray-400)] text-xs mt-1"><Calendar size={12} /> Cadastrado em {new Date(selectedUserForDetails.created_at).toLocaleDateString('pt-BR')}</div>
               </div>
-              <div className="p-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[var(--gray-50)] p-4 rounded-[var(--radius-md)] border border-[var(--gray-100)] text-center"><p className="text-xs text-[var(--gray-400)] font-semibold uppercase mb-1">Total de Anúncios</p><p className="text-2xl font-bold text-[var(--gray-900)]">{selectedUserForDetails.totalListings}</p></div>
-                  <div className="bg-emerald-50 p-4 rounded-[var(--radius-md)] border border-emerald-100 text-center"><p className="text-xs text-emerald-700 font-semibold uppercase mb-1">Vendidos</p><p className="text-2xl font-bold text-emerald-700">{selectedUserForDetails.soldListings}</p></div>
-                  <div className="bg-red-50 p-4 rounded-[var(--radius-md)] border border-red-100 text-center"><p className="text-xs text-red-700 font-semibold uppercase mb-1">Denúncias</p><p className="text-2xl font-bold text-red-700">{selectedUserForDetails.totalReportsAgainst}</p></div>
-                  <div className="bg-orange-50 p-4 rounded-[var(--radius-md)] border border-orange-100 text-center"><p className="text-xs text-orange-700 font-semibold uppercase mb-1">Apagados</p><p className="text-2xl font-bold text-orange-700">{selectedUserForDetails.deletedByMod}</p></div>
+              <div className="p-4 md:p-6">
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                  <div className="bg-[var(--gray-50)] p-3 md:p-4 rounded-[var(--radius-md)] border border-[var(--gray-100)] text-center"><p className="text-[10px] md:text-xs text-[var(--gray-400)] font-semibold uppercase mb-1">Anúncios</p><p className="text-xl md:text-2xl font-bold text-[var(--gray-900)]">{selectedUserForDetails.totalListings}</p></div>
+                  <div className="bg-emerald-50 p-3 md:p-4 rounded-[var(--radius-md)] border border-emerald-100 text-center"><p className="text-[10px] md:text-xs text-emerald-700 font-semibold uppercase mb-1">Vendidos</p><p className="text-xl md:text-2xl font-bold text-emerald-700">{selectedUserForDetails.soldListings}</p></div>
+                  <div className="bg-red-50 p-3 md:p-4 rounded-[var(--radius-md)] border border-red-100 text-center"><p className="text-[10px] md:text-xs text-red-700 font-semibold uppercase mb-1">Denúncias</p><p className="text-xl md:text-2xl font-bold text-red-700">{selectedUserForDetails.totalReportsAgainst}</p></div>
+                  <div className="bg-orange-50 p-3 md:p-4 rounded-[var(--radius-md)] border border-orange-100 text-center"><p className="text-[10px] md:text-xs text-orange-700 font-semibold uppercase mb-1">Apagados</p><p className="text-xl md:text-2xl font-bold text-orange-700">{selectedUserForDetails.deletedByMod}</p></div>
                 </div>
               </div>
-              <DialogFooter className="bg-[var(--gray-50)] p-4 border-t border-[var(--gray-100)] flex justify-end"><DialogClose asChild><Button variant="outline">Fechar Ficha</Button></DialogClose></DialogFooter>
+              <DialogFooter className="bg-[var(--gray-50)] p-4 border-t border-[var(--gray-100)] flex justify-end"><DialogClose asChild><Button variant="outline" className="w-full sm:w-auto">Fechar Ficha</Button></DialogClose></DialogFooter>
             </>
           ) : <div className="p-8 text-center text-[var(--gray-600)]">Carregando dados...</div>}
         </DialogContent>
@@ -664,9 +704,9 @@ export default function DashboardAdmin() {
               </>
             )}
           </div>
-          <DialogFooter className="bg-[var(--gray-50)] p-4 border-t border-[var(--gray-100)] flex justify-between gap-2">
+          <DialogFooter className="bg-[var(--gray-50)] p-4 border-t border-[var(--gray-100)] flex flex-col sm:flex-row justify-between gap-2">
             <DialogClose asChild><Button variant="outline" className="w-full">Cancelar</Button></DialogClose>
-            <Button className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={isCheckingBan || banModalData.acceptedReports < 3} onClick={handleConfirmBanUser}>Confirmar Banimento</Button>
+            <Button className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={isCheckingBan || banModalData.acceptedReports < 3} onClick={handleConfirmBanUser}>Confirmar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
