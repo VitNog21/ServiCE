@@ -343,28 +343,28 @@ const Home = () => {
     const distanceLabel = formatDistance(distanceMeters);
 
     return (
-      <Link to={`/detalhes/${listing.id}`} key={listing.id} className="listing-card-width group relative flex flex-col snap-start overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-lg hover:border-[#0A847C]/50" style={{ textDecoration: 'none', color: 'inherit' }}>
-        <div className="absolute top-2 left-2 z-10 inline-flex items-center rounded bg-white/95 px-2 py-0.5 backdrop-blur-sm shadow-sm">
-          <span className="text-[10px] font-bold text-[#0A847C] uppercase tracking-wider">{categoryName.slice(0, 15)}</span>
+      <Link to={`/detalhes/${listing.id}`} key={listing.id} className="listing-card-width group relative flex flex-col snap-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#0A847C]/40 hover:-translate-y-1" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <div className="absolute top-3 left-3 z-10 inline-flex items-center rounded-md bg-white/95 px-3 py-1 backdrop-blur-sm shadow-sm">
+          <span className="text-[11px] font-bold text-[#0A847C] uppercase tracking-wider">{categoryName.slice(0, 15)}</span>
         </div>
 
         <div className="aspect-square w-full bg-slate-100 relative overflow-hidden">
           {imageUrl ? (
-            <img src={imageUrl} alt={title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+            <img src={imageUrl} alt={title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
           ) : (
             <div className="flex h-full items-center justify-center text-4xl text-slate-300">📷</div>
           )}
         </div>
 
-        <div className="flex flex-col flex-grow p-4">
-          <h3 className="line-clamp-2 text-sm font-medium text-slate-900 min-h-[2.5rem] leading-tight group-hover:text-[#0A847C] transition-colors">
+        <div className="flex flex-col flex-grow p-5">
+          <h3 className="line-clamp-2 text-sm font-semibold text-slate-800 min-h-[2.5rem] leading-snug group-hover:text-[#0A847C] transition-colors">
             {title}
           </h3>
-          <div className="mt-2 text-lg font-bold text-slate-900">
+          <div className="mt-3 text-xl font-bold text-[#0A847C]">
             R$ {Number(priceValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
           {distanceLabel && (
-            <div className="mt-auto pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs text-slate-500">
+            <div className="mt-auto pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs text-slate-500 mt-3">
               <MapPin className="h-3.5 w-3.5 text-[#0A847C] flex-shrink-0" />
               <span className="truncate">{distanceLabel}</span>
             </div>
@@ -395,7 +395,7 @@ const Home = () => {
               />
             </div>
             
-            <button type="submit" className="h-11 px-6 rounded-xl bg-[#0A847C] hover:bg-[#085a51] text-white font-semibold flex items-center justify-center gap-2 transition-colors">
+            <button type="submit" className="h-12 px-12 rounded-lg bg-[#0A847C] hover:bg-[#085a51] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors shrink-0">
               Buscar
             </button>
             

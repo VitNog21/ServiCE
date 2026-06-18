@@ -299,7 +299,7 @@ const EditProfile = () => {
 
             <div className="flex flex-col gap-2">
               <label htmlFor="location" className="text-sm font-bold text-slate-700">Localidade</label>
-              <div className="w-full h-12 [&>div]:h-full [&>div>input]:h-full [&>div>input]:rounded-xl [&>div>input]:border-slate-300 [&>div>input]:focus:border-[#0A847C] [&>div>input]:focus:ring-1 [&>div>input]:focus:ring-[#0A847C]">
+              <div className="[&>div>input]:h-12 [&>div>input]:rounded-xl [&>div>input]:border-slate-300 [&>div>input]:focus:border-[#0A847C] [&>div>input]:focus:ring-1 [&>div>input]:focus:ring-[#0A847C]">
                 <AddressAutocomplete
                   value={formData.location}
                   onChange={handleLocationInputChange}

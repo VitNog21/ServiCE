@@ -87,9 +87,9 @@ export default function Chat() {
         (a, b) => new Date(b.last_message_time) - new Date(a.last_message_time)
       );
 
-      // Tratamento Seguro de Abertura de Chat via Link (Evita o Bug da Tela Branca)
+      // Tratamento Seguro de Abertura de Chat via Link
       if (listingId && receiverId && !handledUrlParams.current) {
-        handledUrlParams.current = true; // Marca que já abrimos o link para não rodar em loop
+        handledUrlParams.current = true; 
         
         const convo = conversationsList.find(c => String(c.listing_id) === String(listingId) && String(c.other_user_id) === String(receiverId));
         
@@ -97,7 +97,6 @@ export default function Chat() {
           setConversations(conversationsList);
           setSelectedConversation(convo);
         } else {
-          // Se for uma conversa 100% nova
           try {
             const [listingRes, receiverRes] = await Promise.all([
               supabase.from('listings').select('title').eq('id', listingId).single(),
@@ -169,37 +168,23 @@ export default function Chat() {
   useEffect(() => {
     if (currentUser) {
       let isMounted = true;
-      
       const loadConvAsync = async () => {
-        if (isMounted) {
-          await loadConversations(currentUser.id);
-        }
+        if (isMounted) await loadConversations(currentUser.id);
       };
-      
       loadConvAsync();
-      
-      return () => {
-        isMounted = false;
-      };
+      return () => { isMounted = false; };
     }
   }, [currentUser, loadConversations]);
 
   useEffect(() => {
     if (selectedConversation) {
       let isMounted = true;
-      
       const loadMsgAsync = async () => {
-        if (isMounted) {
-          await loadMessages(selectedConversation);
-        }
+        if (isMounted) await loadMessages(selectedConversation);
       };
-      
       loadMsgAsync();
       setMessageInput('');
-      
-      return () => {
-        isMounted = false;
-      };
+      return () => { isMounted = false; };
     }
   }, [selectedConversation, loadMessages]);
 
@@ -208,7 +193,7 @@ export default function Chat() {
   }, [messages]);
 
   // ==========================================
-  // 4. SUPABASE REALTIME (LIMPO E SEGURO)
+  // 4. SUPABASE REALTIME
   // ==========================================
   useEffect(() => {
     if (!currentUser || !selectedConversation) return;
@@ -275,7 +260,6 @@ export default function Chat() {
     }
   };
 
-  // Funções de tempo blindadas
   const formatTime = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -312,7 +296,6 @@ export default function Chat() {
           ======================================= */}
       <div className={`w-full md:w-[350px] lg:w-[400px] flex-shrink-0 flex-col border-r border-slate-200 bg-white z-10 ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
         
-        {/* Header da Barra Lateral */}
         <div className="h-16 px-4 bg-[#f0f2f5] flex items-center gap-3 shrink-0">
           <button onClick={() => navigate('/')} className="p-2 -ml-2 text-slate-600 hover:text-slate-900 rounded-full transition-colors" title="Voltar para Home">
             <ArrowLeft size={20} />
@@ -320,7 +303,6 @@ export default function Chat() {
           <h2 className="text-lg font-bold text-slate-800">Mensagens</h2>
         </div>
 
-        {/* Lista de Contatos (Apenas Foto e Nome) */}
         <div className="flex-1 overflow-y-auto scrollbar-hide bg-white">
           {conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-6 text-slate-400">
@@ -374,7 +356,7 @@ export default function Chat() {
           </div>
         ) : (
           <>
-            {/* CABEÇALHO DO CHAT (Nome em cima, Anúncio embaixo) */}
+            {/* CABEÇALHO DO CHAT */}
             <div className="h-[70px] bg-[#f0f2f5] px-4 py-2 flex items-center shrink-0 shadow-sm z-10 gap-2">
               <button className="md:hidden p-2 -ml-2 text-slate-600 rounded-full" onClick={() => setSelectedConversation(null)}>
                 <ArrowLeft size={22} />
@@ -398,17 +380,17 @@ export default function Chat() {
               </div>
             </div>
 
-            {/* ÁREA DE MENSAGENS (BALÕES ESTILO WHATSAPP) */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-2">
+            {/* ÁREA DE MENSAGENS */}
+            <div className="flex-1 overflow-y-auto px-4 py-6 md:px-10 flex flex-col">
               {loading ? (
                 <div className="flex justify-center py-10">
-                  <span className="bg-white/80 px-4 py-2 rounded-full text-sm text-slate-500 font-medium shadow-sm flex items-center gap-2">
+                  <span className="bg-white/90 px-4 py-2 rounded-full text-sm text-slate-500 font-medium shadow-sm flex items-center gap-2">
                     <Loader className="animate-spin w-4 h-4" /> Carregando mensagens...
                   </span>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex justify-center py-10">
-                  <span className="bg-[#fff4c2] px-4 py-2 rounded-lg text-[13px] text-slate-700 font-medium shadow-sm text-center max-w-sm">
+                  <span className="bg-[#fff4c2] px-5 py-2.5 rounded-xl text-[13px] text-slate-700 font-medium shadow-sm text-center max-w-sm leading-relaxed">
                     As mensagens e chamadas são protegidas com a garantia ServiCE. Inicie a negociação.
                   </span>
                 </div>
@@ -416,40 +398,55 @@ export default function Chat() {
                 messages.map((message, index) => {
                   const isOwn = message.sender_id === currentUser.id;
                   const prevMsg = messages[index - 1];
+                  const nextMsg = messages[index + 1];
                   const showDate = index === 0 || (prevMsg?.created_at && message?.created_at && formatDate(prevMsg.created_at) !== formatDate(message.created_at));
 
+                  const sameAsPrev = !showDate && prevMsg && prevMsg.sender_id === message.sender_id;
+                  const sameAsNext = nextMsg && nextMsg.sender_id === message.sender_id
+                    && formatDate(nextMsg.created_at) === formatDate(message.created_at);
+
+                  const ownCorner = sameAsNext ? 'rounded-br-md' : 'rounded-br-none';
+                  const otherCorner = sameAsNext ? 'rounded-bl-md' : 'rounded-bl-none';
+
                   return (
-                    <div key={message.id} className="flex flex-col">
+                    <div key={message.id} className={`flex flex-col ${sameAsPrev ? 'mt-1' : 'mt-4'}`}>
+                      
+                      {/* SEPARADOR DE DATA - HARMONIZADO */}
                       {showDate && (
-                        <div className="flex justify-center my-4">
-                          <span className="bg-white/90 px-3 py-1 rounded-lg shadow-sm text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                        <div className="flex justify-center my-5">
+                          <span className="bg-white/95 px-4 py-1.5 rounded-full shadow-sm text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                             {formatDate(message.created_at)}
                           </span>
                         </div>
                       )}
-                      
-                      <div className={`flex w-full mb-2 ${isOwn ? 'justify-end pr-2 sm:pr-4' : 'justify-start'}`}>
-                        {/* BALÃO BLINDADO - MENSAGENS DO USUÁRIO COM MARGEM ADEQUADA */}
-                        <div 
-                          className={`flex flex-col max-w-[85%] md:max-w-[60%] px-3.5 py-2 rounded-lg shadow-sm ${
-                            isOwn 
-                              ? 'bg-[#dcf8c6] text-slate-900 rounded-br-none' 
-                              : 'bg-white text-slate-900 rounded-bl-none'
+
+                      <div className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                        
+                        {/* BALÃO DA MENSAGEM COM ESPAÇO FANTASMA */}
+                        <div
+                          className={`relative w-fit max-w-[85%] sm:max-w-[75%] md:max-w-[65%] px-3 pt-2 pb-1.5 shadow-sm ${
+                            isOwn
+                              ? `bg-[#dcf8c6] text-slate-900 rounded-2xl ${ownCorner}`
+                              : `bg-white text-slate-900 rounded-2xl ${otherCorner}`
                           }`}
                         >
-                          <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+                          <span className="text-[15px] leading-snug whitespace-pre-wrap break-words text-left">
                             {message.content}
-                          </p>
-                          <span className={`text-[11px] font-medium self-end mt-1 ${isOwn ? 'text-green-700' : 'text-slate-400'}`}>
+                            {/* O bloco que impede o texto de encostar na hora */}
+                            <span className="inline-block w-12">&#8203;</span>
+                          </span>
+                          
+                          <span className={`absolute bottom-1.5 right-2.5 text-[10px] font-medium ${isOwn ? 'text-[#54656f]' : 'text-slate-400'}`}>
                             {formatTime(message.created_at)}
                           </span>
                         </div>
+
                       </div>
                     </div>
                   );
                 })
               )}
-              <div ref={messagesEndRef} />
+              <div ref={messagesEndRef} className="h-4" />
             </div>
 
             {/* BARRA DE DIGITAÇÃO */}
