@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
   --green-900: #052e1c;
@@ -37,13 +37,7 @@
   --primary-hover: var(--green-800);
 }
 
-/* --- RESET E ESTRUTURA BASE --- */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+/* --- ESTRUTURA BASE --- */
 body {
   font-family: var(--font-body);
   background-color: var(--gray-50);
@@ -616,7 +610,7 @@ input  { font-family: var(--font-body); }
 .header-search {
   flex: 1;
   max-width: 760px;
-  margin: 0 32px !important;
+  margin: 0 32px;
 }
 
 .header-search-box {

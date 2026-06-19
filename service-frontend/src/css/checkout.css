@@ -4,7 +4,6 @@
 
 /* Ultra pequenas (< 480px) */
 @media (max-width: 479px) {
-  /* Centralização da container principal */
   .checkout-container {
     display: flex;
     justify-content: center;
@@ -12,27 +11,24 @@
     width: 100%;
   }
 
-  /* Melhorar padding em telas ultra pequenas */
   .checkout-wrapper {
     width: calc(100% - 24px);
   }
 
-  /* Garantir que os cards ocupem todo o espaço disponível */
   .checkout-card {
     width: 100%;
   }
 
-  /* Melhorar espaçamento em inputs */
-  input[type="text"],
-  input[type="email"],
-  input[type="number"],
-  select {
+  /* Escopado: não vaza para fora do checkout */
+  .checkout-container input[type="text"],
+  .checkout-container input[type="email"],
+  .checkout-container input[type="number"],
+  .checkout-container select {
     min-height: 44px;
     font-size: 16px;
   }
 
-  /* Garantir botões com tamanho mínimo */
-  button {
+  .checkout-container button {
     min-height: 44px;
   }
 }
@@ -50,10 +46,10 @@
     width: calc(100% - 32px);
   }
 
-  input[type="text"],
-  input[type="email"],
-  input[type="number"],
-  select {
+  .checkout-container input[type="text"],
+  .checkout-container input[type="email"],
+  .checkout-container input[type="number"],
+  .checkout-container select {
     min-height: 44px;
   }
 }
@@ -77,12 +73,6 @@
    GARANTIR CENTRALIZAÇÃO
    ========================================= */
 
-/* Garantir que max-w-2xl funcione bem com mx-auto */
-.max-w-2xl {
-  max-width: 42rem;
-}
-
-/* Breakpoint específico para garantir responsividade */
 @media (max-width: 640px) {
   .sticky-header {
     position: sticky;
@@ -95,14 +85,10 @@
    FORMULÁRIOS E INPUTS
    ========================================= */
 
-/* Garantir que inputs sejam touch-friendly */
-input, select, textarea, button {
+/* Touch-friendly — escopado para não vazar para o resto da app */
+.checkout-container input,
+.checkout-container select,
+.checkout-container textarea,
+.checkout-container button {
   min-height: 44px;
-}
-
-/* Melhorar viewport em mobile */
-@media (max-width: 479px) {
-  body {
-    font-size: 16px; /* Evita zoom automático em inputs */
-  }
 }

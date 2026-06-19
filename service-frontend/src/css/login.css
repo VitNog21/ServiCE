@@ -44,7 +44,7 @@
 /* =========================================
    MENSAGENS DE ALERTA
    ========================================= */
-.alert {
+.login-container .alert {
   padding: 12px 16px;
   border-radius: var(--radius-md);
   margin-bottom: 24px;
@@ -52,19 +52,19 @@
   font-weight: 500;
   text-align: center;
 }
-.alert-success { background: var(--green-50); color: var(--green-700); border: 1px solid var(--green-100); }
-.alert-error { background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; }
+.login-container .alert-success { background: var(--green-50); color: var(--green-700); border: 1px solid var(--green-100); }
+.login-container .alert-error { background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; }
 
 /* =========================================
    INPUTS
    ========================================= */
-.input-group {
+.login-container .input-group {
   margin-bottom: 20px;
   display: flex;
   flex-direction: column;
 }
 
-.input-group label {
+.login-container .input-group label {
   font-weight: 600;
   font-size: 12px;
   margin-bottom: 8px;
@@ -73,7 +73,7 @@
   letter-spacing: 0.06em;
 }
 
-.input-group input {
+.login-container .input-group input {
   min-height: 52px;
   padding: 14px 16px;
   border: 1.5px solid var(--gray-100);
@@ -85,7 +85,7 @@
   outline: none;
 }
 
-.input-group input:focus {
+.login-container .input-group input:focus {
   background-color: #ffffff;
   border-color: var(--green-700);
 }
@@ -93,7 +93,7 @@
 /* =========================================
    BOTÕES
    ========================================= */
-.btn-primary {
+.login-container .btn-primary {
   width: 100%;
   background-color: var(--green-700);
   color: white;
@@ -108,11 +108,11 @@
   box-shadow: 0 4px 12px rgba(15, 110, 86, 0.2);
 }
 
-.btn-primary:hover:not(:disabled) {
+.login-container .btn-primary:hover:not(:disabled) {
   background-color: var(--green-800);
 }
 
-.btn-primary:active:not(:disabled) {
+.login-container .btn-primary:active:not(:disabled) {
   transform: scale(0.98);
 }
 
@@ -206,29 +206,29 @@
     margin-bottom: 24px;
   }
 
-  .input-group {
+  .login-container .input-group {
     margin-bottom: 16px;
   }
 
-  .input-group label {
+  .login-container .input-group label {
     font-size: 11px;
     margin-bottom: 6px;
   }
 
-  .input-group input {
+  .login-container .input-group input {
     min-height: 44px;
     padding: 12px 14px;
     font-size: 14px;
     border-radius: var(--radius-sm);
   }
 
-  .alert {
+  .login-container .alert {
     padding: 12px 14px;
     font-size: 13px;
     margin-bottom: 16px;
   }
 
-  .btn-primary,
+  .login-container .btn-primary,
   .btn-google {
     min-height: 44px;
     font-size: 15px;
@@ -236,7 +236,7 @@
     border-radius: var(--radius-sm);
   }
 
-  .btn-primary {
+  .login-container .btn-primary {
     margin-top: 12px;
   }
 
@@ -273,16 +273,16 @@
     margin-bottom: 28px;
   }
 
-  .input-group {
+  .login-container .input-group {
     margin-bottom: 18px;
   }
 
-  .input-group input {
+  .login-container .input-group input {
     min-height: 44px;
     padding: 12px 14px;
   }
 
-  .btn-primary,
+  .login-container .btn-primary,
   .btn-google {
     min-height: 44px;
   }
@@ -304,11 +304,11 @@
     padding: 44px;
   }
 
-  .input-group input {
+  .login-container .input-group input {
     min-height: 52px;
   }
 
-  .btn-primary,
+  .login-container .btn-primary,
   .btn-google {
     min-height: 54px;
   }

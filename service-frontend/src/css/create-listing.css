@@ -2,8 +2,6 @@
    VARIAVEIS DE COR E ESTILO (Modern UI)
    ========================================= */
 :root {
-  --primary-color: var(--green-700);
-  --primary-hover: #086b64;
   --bg-color: #f8fafc;
   --card-bg: #ffffff;
   --text-main: #0f172a;
@@ -25,7 +23,7 @@
   padding: 60px 20px;
   background-color: var(--bg-color);
   min-height: 100vh;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
 }
 
 .form-card {
