@@ -29,14 +29,19 @@ function Dialog({ open, onOpenChange, children }) {
 
   return (
     <DialogContext.Provider value={{ onOpenChange }}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <button
-          type="button"
-          aria-label="Fechar diálogo"
-          className="absolute inset-0 cursor-default bg-slate-950/55 backdrop-blur-[2px]"
+      {/* Outer fixed shell — z-index only */}
+      <div className="fixed inset-0 z-50">
+        {/* Backdrop — click to close */}
+        <div
+          className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]"
           onClick={() => onOpenChange(false)}
         />
-        <div className="relative z-10 w-full">{children}</div>
+        {/* Scroll + centering container */}
+        <div className="absolute inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            {children}
+          </div>
+        </div>
       </div>
     </DialogContext.Provider>
   );
@@ -47,7 +52,10 @@ function DialogContent({ className, children }) {
     <div
       role="dialog"
       aria-modal="true"
-      className={cn('mx-auto w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200', className)}
+      className={cn(
+        'relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200',
+        className
+      )}
       onClick={(event) => event.stopPropagation()}
     >
       {children}

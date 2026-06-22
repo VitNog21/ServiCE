@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, PauseCircle, Play, Trash2, X, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, MoreVertical, PauseCircle, Play, RefreshCw, Trash2, X, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,53 +27,53 @@ const MyListings = () => {
   const [selectedListing, setSelectedListing] = useState(null);
   const toast = useToast();
 
-  useEffect(() => {
-    const fetchMyListings = async () => {
-      try {
-        setLoading(true);
+  const fetchMyListings = useCallback(async () => {
+    try {
+      setLoading(true);
 
-        const { data: { session } } = await supabase.auth.getSession();
-        let currentUser = session?.user;
+      const { data: { session } } = await supabase.auth.getSession();
+      let currentUser = session?.user;
 
-        if (!currentUser) {
-          const savedUser = localStorage.getItem('service_user');
-          if (savedUser) currentUser = JSON.parse(savedUser);
-        }
-
-        if (!currentUser) {
-          navigate('/login');
-          return;
-        }
-
-        setUser(currentUser);
-
-        const { data, error } = await supabase
-          .from('listings')
-          .select(`
-            id,
-            title,
-            price,
-            status,
-            image_urls,
-            created_at,
-            category:categories(name)
-          `)
-          .eq('owner_id', currentUser.id)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        
-        setListings(data || []);
-
-      } catch (error) {
-        console.error('Erro ao buscar anúncios:', error);
-      } finally {
-        setLoading(false);
+      if (!currentUser) {
+        const savedUser = localStorage.getItem('service_user');
+        if (savedUser) currentUser = JSON.parse(savedUser);
       }
-    };
 
-    fetchMyListings();
+      if (!currentUser) {
+        navigate('/login');
+        return;
+      }
+
+      setUser(currentUser);
+
+      const { data, error } = await supabase
+        .from('listings')
+        .select(`
+          id,
+          title,
+          price,
+          status,
+          image_urls,
+          created_at,
+          category:categories(name)
+        `)
+        .eq('owner_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setListings(data || []);
+
+    } catch (error) {
+      console.error('Erro ao buscar anúncios:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [navigate]);
+
+  useEffect(() => {
+    fetchMyListings();
+  }, [fetchMyListings]);
 
   useEffect(() => {
     if (!manageMenuOpenId) return undefined;
@@ -138,6 +138,27 @@ const MyListings = () => {
     await updateListingStatus(selectedListing.id, 'sold');
     setIsVendaModalOpen(false);
     toast.success("Anúncio marcado como vendido.");
+  };
+
+  const handleReactivateListing = async (listingId) => {
+    if (!user) return;
+    try {
+      setUpdatingId(listingId);
+      setManageMenuOpenId(null);
+      const { error } = await supabase.rpc('clone_listing', {
+        p_listing_id: listingId,
+        p_owner_id: user.id,
+      });
+      if (error) throw error;
+      toast.success('Anúncio reativado com sucesso!');
+      setActiveTab('ativo');
+      await fetchMyListings();
+    } catch (error) {
+      console.error('Erro ao reativar anúncio:', error);
+      toast.error('Erro ao reativar anúncio.');
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const activeListings = useMemo(
@@ -238,7 +259,7 @@ const MyListings = () => {
                   {manageMenuOpenId === listing.id && (
                     <div className="absolute bottom-full right-0 z-30 mb-2 w-52 overflow-hidden rounded-xl border bg-white p-1 shadow-xl">
                       <button className="menu-item p-3 w-full text-left hover:bg-slate-50" onClick={() => navigate(`/editar-anuncio/${listing.id}`)}>Editar</button>
-                      
+
                       {listing.status === 'active' && (
                         <>
                           <button className="menu-item p-3 w-full text-left hover:bg-slate-50 text-emerald-600 font-bold" onClick={() => openVendaModal(listing)}>
@@ -247,9 +268,24 @@ const MyListings = () => {
                           <button className="menu-item p-3 w-full text-left hover:bg-slate-50" onClick={() => updateListingStatus(listing.id, 'paused')}>Pausar</button>
                         </>
                       )}
-                      
+
                       {listing.status === 'paused' && (
                         <button className="menu-item p-3 w-full text-left hover:bg-slate-50" onClick={() => updateListingStatus(listing.id, 'active')}>Reativar</button>
+                      )}
+
+                      {listing.status === 'sold' && (
+                        <button
+                          className="menu-item p-3 w-full text-left hover:bg-emerald-50 text-emerald-700 font-semibold flex items-center gap-2 disabled:opacity-50"
+                          onClick={() => handleReactivateListing(listing.id)}
+                          disabled={updatingId === listing.id}
+                        >
+                          {updatingId === listing.id ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4" />
+                          )}
+                          {updatingId === listing.id ? 'Reativando...' : 'Reativar Anúncio'}
+                        </button>
                       )}
 
                       <button className="menu-item p-3 w-full text-left hover:bg-red-50 text-red-600" onClick={() => openVendaModal(listing)}>Excluir</button>
