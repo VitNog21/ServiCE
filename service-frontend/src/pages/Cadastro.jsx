@@ -97,7 +97,7 @@ const Cadastro = () => {
               onChange={(e) => setName(e.target.value)} 
               required 
               disabled={loading}
-              placeholder="Seu nome completo"
+              placeholder="Seu nome"
             />
           </div>
 
