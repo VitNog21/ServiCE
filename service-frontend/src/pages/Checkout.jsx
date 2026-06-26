@@ -25,6 +25,8 @@ export default function Checkout() {
   const [step, setStep] = useState('summary');
   const [method, setMethod] = useState(null);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
   useEffect(() => {
     async function fetchOrder() {
       try {
@@ -53,7 +55,7 @@ export default function Checkout() {
     setProcessing(true);
     try {
       await new Promise(r => setTimeout(r, 1500));
-      const response = await fetch('http://localhost:3000/api/payments/test-approve', {
+      const response = await fetch(`${API_URL}/api/payments/test-approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId }),
@@ -64,6 +66,29 @@ export default function Checkout() {
     } catch {
       alert('Erro na comunicacao com o servidor de pagamentos.');
     } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    setProcessing(true);
+    try {
+      const response = await fetch(`${API_URL}/api/payments/create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else {
+        throw new Error(data.error || 'Erro ao gerar checkout');
+      }
+    } catch (err) {
+      console.error('Erro no pagamento:', err);
+      alert('Erro ao conectar com o provedor de pagamentos.');
       setProcessing(false);
     }
   };
@@ -228,6 +253,24 @@ export default function Checkout() {
                     </div>
                   </div>
                   <ChevronRight size={18} className="sm:size-[20px] text-slate-300 flex-shrink-0" />
+                </button>
+
+                {/* Mercado Pago */}
+                <button
+                  onClick={handlePayment}
+                  disabled={processing}
+                  className="flex w-full items-center justify-between rounded-[10px] sm:rounded-[12px] border-2 p-4 transition-all duration-200 ease-in-out active:scale-[0.97] hover:shadow-md min-h-[80px] sm:min-h-auto bg-blue-50 border-blue-200 hover:border-blue-300"
+                >
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-[8px] sm:rounded-[10px] bg-blue-600 text-white flex-shrink-0">
+                      {processing ? <Loader2 className="animate-spin" /> : <ShieldCheck size={20} className="sm:size-[24px]" />}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[14px] sm:text-[16px] font-bold text-blue-900">Mercado Pago</p>
+                      <p className="text-[12px] sm:text-[13px] text-blue-700">Pague com PIX, Cartão ou Boleto</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="sm:size-[20px] text-blue-400 flex-shrink-0" />
                 </button>
               </div>
             </div>
