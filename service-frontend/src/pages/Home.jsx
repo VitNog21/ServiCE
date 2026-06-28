@@ -494,8 +494,8 @@ const Home = () => {
                     </div>
                     <hr />
                     <Link to="/perfil" className="dropdown-item">Meu Perfil</Link>
-                    <Link to="/meus-pedidos" className="dropdown-item">Minhas Compras</Link>
-                    <Link to="/meus-anuncios" className="dropdown-item">Meus Anúncios (Vendas)</Link>
+                    <Link to="/meus-pedidos" className="dropdown-item">Minhas Compras e Vendas (Carteira)</Link>
+                    <Link to="/meus-anuncios" className="dropdown-item">Gerenciar Meus Anúncios</Link>
                     
                     {userRole === 'admin' && (
                       <Link to="/admin" className="dropdown-item font-bold text-amber-600">Dashboard Admin</Link>

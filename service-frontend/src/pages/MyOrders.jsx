@@ -57,26 +57,25 @@ export default function MyOrders() {
   const handleCancelOrder = async (pedidoId, listingId) => {
     if (!window.confirm('Tem certeza que deseja cancelar esta transação? O anúncio voltará a ficar ativo na vitrine.')) return;
     
-    const { error: orderError } = await supabase
-      .from('orders')
-      .update({ status: 'cancelled' })
-      .eq('id', pedidoId);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://service-uakj.onrender.com';
+      const res = await fetch(`${API_URL}/api/payments/cancel-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: pedidoId })
+      });
 
-    if (orderError) {
-      toast({ title: 'Erro', description: 'Não foi possível cancelar o pedido.' });
-      return;
+      if (res.ok) {
+        setCompras(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'cancelled' } : p));
+        setVendas(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'cancelled' } : p));
+        toast({ title: 'Sucesso', description: 'Pedido cancelado e anúncio reativado na vitrine!' });
+      } else {
+        toast({ title: 'Erro', description: 'Não foi possível cancelar o pedido.' });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Erro', description: 'Erro ao conectar com o servidor.' });
     }
-
-    if (listingId) {
-      await supabase
-        .from('listings')
-        .update({ status: 'active' })
-        .eq('id', listingId);
-    }
-
-    setCompras(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'cancelled' } : p));
-    setVendas(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'cancelled' } : p));
-    toast({ title: 'Sucesso', description: 'Pedido cancelado e anúncio reativado na vitrine!' });
   };
 
   const handleWithdraw = (amount) => {

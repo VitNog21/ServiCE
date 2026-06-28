@@ -58,6 +58,35 @@ export const PaymentController = {
     }
   },
 
+  async cancelOrder(req, res) {
+    const { orderId } = req.body;
+    console.log('❌ Request to cancel order:', orderId);
+
+    try {
+      const { data: order, error: fetchError } = await runOnOrderTables((orderTable) =>
+        supabase.from(orderTable).select('listing_id, status').eq('id', orderId).single()
+      );
+
+      if (fetchError || !order) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      await runOnOrderTables((orderTable) =>
+        supabase.from(orderTable).update({ status: 'cancelled' }).eq('id', orderId)
+      );
+
+      if (order.listing_id) {
+        await supabase.from('listings').update({ status: 'active' }).eq('id', order.listing_id);
+      }
+
+      console.log(`✅ SUCCESS: Order ${orderId} cancelled. Listing ${order.listing_id} reactivated to active.`);
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
   async simulateExternal(req, res) {
     const { paymentId } = req.body;
     const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;

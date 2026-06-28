@@ -9,6 +9,9 @@ router.post('/create-checkout', PaymentController.createCheckout);
 // Route for testing: simulate approval
 router.post('/test-approve', PaymentController.testApprove);
 
+// Route to cancel order and reactivate the listing
+router.post('/cancel-order', PaymentController.cancelOrder);
+
 // Route for testing: force real MP simulation
 router.post('/simulate-external', PaymentController.simulateExternal);
 
