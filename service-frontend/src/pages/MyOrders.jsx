@@ -332,6 +332,7 @@ export default function MyOrders() {
                         Recusar / Cancelar Venda
                       </Button>
                     )}
+                  </div>
                 </div>
                 
               </div>
