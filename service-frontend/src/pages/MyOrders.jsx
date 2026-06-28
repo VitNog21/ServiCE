@@ -219,14 +219,41 @@ export default function MyOrders() {
                       </div>
                     )}
 
-                    {/* Botão: Pagar Agora */}
+                     {/* Botão: Pagar Agora */}
                     {(pedido.status === 'pending' || pedido.status === 'pendente') && tab === 'compras' && (
-                      <Button 
-                        className="w-full bg-[#0A847C] hover:bg-[#085a51] text-white h-10 font-bold"
-                        onClick={() => navigate(`/checkout/${pedido.id}`)}
-                      >
-                        Pagar Agora
-                      </Button>
+                      <>
+                        <Button 
+                          className="w-full bg-[#0A847C] hover:bg-[#085a51] text-white h-10 font-bold"
+                          onClick={() => navigate(`/checkout/${pedido.id}`)}
+                        >
+                          Pagar Agora
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const API_URL = import.meta.env.VITE_API_URL || 'https://service-uakj.onrender.com';
+                              const res = await fetch(`${API_URL}/api/payments/test-approve`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ orderId: pedido.id })
+                              });
+                              if (res.ok) {
+                                setCompras(prev => prev.map(p => p.id === pedido.id ? { ...p, status: 'paid' } : p));
+                                toast({ title: 'Sucesso', description: 'Pagamento simulado com sucesso!' });
+                              } else {
+                                alert('Erro ao simular aprovação no servidor.');
+                              }
+                            } catch (err) {
+                              console.error(err);
+                              alert('Erro ao conectar com o servidor.');
+                            }
+                          }}
+                          className="w-full text-slate-400 hover:text-slate-600 text-xs font-semibold mt-2.5 underline"
+                        >
+                          Simular Aprovação (Dev)
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
