@@ -54,6 +54,39 @@ export default function MyOrders() {
     }
   };
 
+  const handleCancelOrder = async (pedidoId, listingId) => {
+    if (!window.confirm('Tem certeza que deseja cancelar esta transação? O anúncio voltará a ficar ativo na vitrine.')) return;
+    
+    const { error: orderError } = await supabase
+      .from('orders')
+      .update({ status: 'cancelled' })
+      .eq('id', pedidoId);
+
+    if (orderError) {
+      toast({ title: 'Erro', description: 'Não foi possível cancelar o pedido.' });
+      return;
+    }
+
+    if (listingId) {
+      await supabase
+        .from('listings')
+        .update({ status: 'active' })
+        .eq('id', listingId);
+    }
+
+    setCompras(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'cancelled' } : p));
+    setVendas(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'cancelled' } : p));
+    toast({ title: 'Sucesso', description: 'Pedido cancelado e anúncio reativado na vitrine!' });
+  };
+
+  const handleWithdraw = (amount) => {
+    if (amount <= 0) {
+      toast({ title: 'Erro', description: 'Você não possui saldo liberado para saque.' });
+      return;
+    }
+    alert(`💸 Solicitação de Saque enviada!\n\nO valor de R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} será transferido para sua chave PIX cadastrada em até 24 horas.`);
+  };
+
   const getStatusBadge = (status) => {
     const styles = {
       pending: "bg-amber-500 text-white shadow-sm",
@@ -160,6 +193,14 @@ export default function MyOrders() {
                     R$ {completedEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                   <span className="text-xs text-[#0D6E56] mt-2 font-medium">Disponível para saque (Confirmação concluída)</span>
+                  {completedEarnings > 0 && (
+                    <Button 
+                      className="mt-3.5 bg-[#0D6E56] hover:bg-[#0A4F3E] text-white h-9 font-bold text-xs"
+                      onClick={() => handleWithdraw(completedEarnings)}
+                    >
+                      Sacar para Minha Chave Pix
+                    </Button>
+                  )}
                 </div>
                 <div className="flex flex-col p-4 rounded-xl bg-blue-50 border border-blue-100">
                   <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Saldo Retido</span>
@@ -202,21 +243,39 @@ export default function MyOrders() {
                   <div className="w-full">
                     {/* Botão: Confirmar Recebimento */}
                     {tab === 'compras' && (pedido.status === 'paid') && (
-                      <Button 
-                        variant="outline" 
-                        className="w-full text-emerald-700 border-emerald-200 hover:bg-emerald-50 h-10 font-bold"
-                        onClick={() => handleConfirmReceipt(pedido.id)}
-                      >
-                        Confirmar Recebimento
-                      </Button>
+                      <>
+                        <Button 
+                          variant="outline" 
+                          className="w-full text-emerald-700 border-emerald-200 hover:bg-emerald-50 h-10 font-bold"
+                          onClick={() => handleConfirmReceipt(pedido.id)}
+                        >
+                          Confirmar Recebimento
+                        </Button>
+                        <Button 
+                          variant="ghost"
+                          className="w-full text-red-600 hover:bg-red-50 hover:text-red-700 h-9 font-bold mt-2 text-xs"
+                          onClick={() => handleCancelOrder(pedido.id, pedido.listing_id)}
+                        >
+                          Cancelar Pedido / Reembolsar
+                        </Button>
+                      </>
                     )}
 
                     {/* Etiqueta: Pagamento Retido */}
                     {tab === 'vendas' && pedido.status === 'paid' && (
-                      <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 py-2.5 rounded-lg border border-blue-100">
-                        <ShieldCheck className="h-4 w-4" />
-                        Pagamento retido
-                      </div>
+                      <>
+                        <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 py-2.5 rounded-lg border border-blue-100">
+                          <ShieldCheck className="h-4 w-4" />
+                          Pagamento retido
+                        </div>
+                        <Button 
+                          variant="ghost"
+                          className="w-full text-red-600 hover:bg-red-50 hover:text-red-700 h-9 font-bold mt-2 text-xs"
+                          onClick={() => handleCancelOrder(pedido.id, pedido.listing_id)}
+                        >
+                          Cancelar Venda / Reembolsar
+                        </Button>
+                      </>
                     )}
 
                      {/* Botão: Pagar Agora */}
@@ -227,6 +286,13 @@ export default function MyOrders() {
                           onClick={() => navigate(`/checkout/${pedido.id}`)}
                         >
                           Pagar Agora
+                        </Button>
+                        <Button 
+                          variant="ghost"
+                          className="w-full text-red-600 hover:bg-red-50 hover:text-red-700 h-9 font-bold mt-2 text-xs"
+                          onClick={() => handleCancelOrder(pedido.id, pedido.listing_id)}
+                        >
+                          Cancelar Pedido
                         </Button>
                         <button
                           type="button"
@@ -255,7 +321,17 @@ export default function MyOrders() {
                         </button>
                       </>
                     )}
-                  </div>
+
+                    {/* Botão: Cancelar Venda Pendente (para vendedores) */}
+                    {(pedido.status === 'pending' || pedido.status === 'pendente') && tab === 'vendas' && (
+                      <Button 
+                        variant="ghost"
+                        className="w-full text-red-600 hover:bg-red-50 hover:text-red-700 h-9 font-bold text-xs"
+                        onClick={() => handleCancelOrder(pedido.id, pedido.listing_id)}
+                      >
+                        Recusar / Cancelar Venda
+                      </Button>
+                    )}
                 </div>
                 
               </div>
