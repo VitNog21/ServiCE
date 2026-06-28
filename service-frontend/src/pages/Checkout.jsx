@@ -25,7 +25,7 @@ export default function Checkout() {
   const [step, setStep] = useState('summary');
   const [method, setMethod] = useState(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     async function fetchOrder() {
