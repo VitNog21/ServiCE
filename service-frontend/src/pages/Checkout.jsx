@@ -25,7 +25,7 @@ export default function Checkout() {
   const [step, setStep] = useState('summary');
   const [method, setMethod] = useState(null);
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_API_URL || 'https://service-uakj.onrender.com';
 
   useEffect(() => {
     async function fetchOrder() {
