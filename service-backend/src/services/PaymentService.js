@@ -8,12 +8,21 @@ const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN || '' 
 });
 
-export const createPaymentPreference = async (order) => {
+export const createPaymentPreference = async (order, requestOrigin = null) => {
   const preference = new Preference(client);
 
-  const frontendUrl = (process.env.FRONTEND_URL && process.env.FRONTEND_URL !== 'INSIRA_O_VALOR_AQUI') 
+  let frontendUrl = (process.env.FRONTEND_URL && process.env.FRONTEND_URL !== 'INSIRA_O_VALOR_AQUI') 
     ? process.env.FRONTEND_URL.replace(/\/$/, '') 
-    : 'http://localhost:5173';
+    : null;
+
+  if (!frontendUrl && requestOrigin) {
+    // Evita barras finais no redirect url que podem invalidar regras do MP
+    frontendUrl = requestOrigin.replace(/\/$/, '');
+  }
+
+  if (!frontendUrl) {
+    frontendUrl = 'http://localhost:5173';
+  }
 
   let webhookUrl = (process.env.WEBHOOK_URL && process.env.WEBHOOK_URL !== 'INSIRA_O_VALOR_AQUI')
     ? process.env.WEBHOOK_URL.replace(/\/$/, '')

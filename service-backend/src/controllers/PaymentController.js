@@ -19,7 +19,8 @@ export const PaymentController = {
       }
 
       console.log('Creating preference for order:', order.id);
-      const preference = await PaymentService.createPaymentPreference(order);
+      const requestOrigin = req.get('origin') || req.get('referer');
+      const preference = await PaymentService.createPaymentPreference(order, requestOrigin);
       console.log('Preference created successfully:', preference.id);
 
       return res.status(200).json({
