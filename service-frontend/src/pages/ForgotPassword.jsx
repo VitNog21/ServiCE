@@ -13,15 +13,19 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // ETAPA 1: Solicitar Código de Recuperação
+  // ETAPA 1: Solicitar Código de Recuperação (Via OTP de e-mail)
   const handleRequestCode = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/recuperar-senha`,
+      // Usamos signInWithOtp que por padrão envia o código de 6 dígitos ao e-mail
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false // Não cria uma nova conta se o e-mail não existir
+        }
       });
 
       if (error) throw error;
@@ -30,19 +34,19 @@ const ForgotPassword = () => {
         type: 'success',
         text: 'Código enviado! Verifique seu e-mail (caixa de entrada e spam).'
       });
-      setStep(2); // Avança para a etapa de digitar o código e a nova senha
+      setStep(2); // Avança para o passo de digitar o código
     } catch (error) {
-      console.error('Erro ao solicitar recuperação:', error.message);
+      console.error('Erro ao solicitar código de login OTP:', error.message);
       setMessage({
         type: 'error',
-        text: 'Erro ao solicitar código. Verifique o e-mail digitado.'
+        text: 'Erro ao solicitar código. Verifique se o e-mail está correto e cadastrado.'
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // ETAPA 2: Confirmar OTP e Redefinir Senha
+  // ETAPA 2: Confirmar OTP e Definir Nova Senha
   const handleVerifyOtpAndReset = async (e) => {
     e.preventDefault();
 
@@ -60,16 +64,16 @@ const ForgotPassword = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      // 1. Validar o código OTP enviado ao e-mail
+      // 1. Validar o código OTP enviado ao e-mail (tipo 'email' para signInWithOtp)
       const { error: otpError } = await supabase.auth.verifyOtp({
         email,
         token,
-        type: 'recovery'
+        type: 'email'
       });
 
       if (otpError) throw otpError;
 
-      // 2. Com a sessão autenticada temporariamente, atualizar a senha
+      // 2. Com a sessão autenticada, atualizar/definir a senha do usuário
       const { error: updateError } = await supabase.auth.updateUser({
         password: password
       });
