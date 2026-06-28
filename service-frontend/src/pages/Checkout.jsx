@@ -25,7 +25,80 @@ export default function Checkout() {
   const [step, setStep] = useState('summary');
   const [method, setMethod] = useState(null);
 
+  // Estados interativos para o Cartão de Crédito
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [cardBrand, setCardBrand] = useState('VISA');
+
+  // Estado do Timer do PIX (600 segundos = 10 minutos)
+  const [countdown, setCountdown] = useState(600);
+
   const API_URL = import.meta.env.VITE_API_URL || 'https://service-uakj.onrender.com';
+
+  // Efeitos do Timer do PIX
+  useEffect(() => {
+    if (step === 'simulated-payment' && method === 'pix') {
+      const timer = setInterval(() => {
+        setCountdown(prev => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [step, method]);
+
+  const formatCountdown = () => {
+    const minutes = Math.floor(countdown / 60);
+    const seconds = countdown % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Handlers para formatação interativa do Cartão
+  const handleCardNumberChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 16) value = value.slice(0, 16);
+
+    // Detecta a bandeira
+    if (value.startsWith('4')) {
+      setCardBrand('VISA');
+    } else if (value.startsWith('5')) {
+      setCardBrand('MASTERCARD');
+    } else if (value.startsWith('3')) {
+      setCardBrand('AMEX');
+    } else {
+      setCardBrand('VISA');
+    }
+
+    const formatted = value.match(/.{1,4}/g)?.join(' ') || '';
+    setCardNumber(formatted);
+  };
+
+  const handleCardNameChange = (e) => {
+    setCardName(e.target.value.toUpperCase());
+  };
+
+  const handleCardExpiryChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 4) value = value.slice(0, 4);
+
+    if (value.length > 2) {
+      value = `${value.slice(0, 2)}/${value.slice(2)}`;
+    }
+    setCardExpiry(value);
+  };
+
+  const handleCardCvvChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 4) value = value.slice(0, 4);
+    setCardCvv(value);
+  };
+
+  const handleCopyPix = () => {
+    const pixCode = `00020101021226830014br.gov.bcb.pix2561pix.chave.ficticia-service.app5204000053039865405${order?.total_price || 0}5802BR5915ServiCE App6009Sao Paulo62070503***6304`;
+    navigator.clipboard.writeText(pixCode);
+    alert('Código PIX Copia e Cola copiado para a área de transferência!');
+  };
 
   useEffect(() => {
     async function fetchOrder() {
@@ -284,27 +357,37 @@ export default function Checkout() {
               <h1 className="text-center text-[24px] sm:text-[28px] font-bold text-[#111827] mb-6 sm:mb-8">Pague com PIX</h1>
 
               <div className="flex justify-center mb-6 sm:mb-8">
-                <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 sm:px-4 py-2 text-[12px] sm:text-[14px] font-semibold text-orange-600 border border-orange-200">
+                <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 sm:px-4 py-2 text-[12px] sm:text-[14px] font-bold text-orange-600 border border-orange-200">
                   <Clock size={14} className="sm:size-[16px]" />
-                  <span>Expira em 14:32</span>
+                  <span>Expira em {formatCountdown()}</span>
                 </div>
               </div>
 
               {/* QR Code */}
               <div className="flex justify-center mb-6 sm:mb-8">
-                <div className="rounded-[12px] sm:rounded-[16px] border-2 border-slate-200 bg-[#F9FAFB] p-4 sm:p-8 shadow-sm">
+                <div className="relative rounded-[16px] border-2 border-slate-100 bg-[#F9FAFB] p-6 sm:p-8 shadow-sm flex items-center justify-center overflow-hidden">
                   <QrCode size={200} className="sm:size-[240px] text-[#111827]" />
+                  {/* Linha laser de scan animada */}
+                  <div 
+                    className="absolute left-0 right-0 h-0.5 bg-emerald-500 opacity-60 shadow-md shadow-emerald-500 animate-pulse" 
+                    style={{ top: '50%' }} 
+                  />
                 </div>
               </div>
 
               {/* Codigo Copia e Cola */}
               <div className="space-y-3 mb-6 sm:mb-8">
-                <p className="text-center text-[11px] sm:text-[12px] font-medium uppercase tracking-[0.06em] text-slate-500">Ou copie e cole esse codigo</p>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 overflow-hidden rounded-[10px] sm:rounded-[12px] bg-[#F5F5F5] p-3 sm:p-4 font-mono text-[11px] sm:text-[12px] text-slate-600 border border-slate-200">
-                  <span className="truncate text-left order-1 sm:order-none">00020126580014BR.GOV.BCB.PIX0114...</span>
-                  <button className="flex shrink-0 items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white font-semibold text-[#0D6E56] transition-all hover:bg-slate-50 active:scale-[0.97] border border-slate-200 whitespace-nowrap min-h-[40px] order-0 sm:order-none">
-                    <Copy size={14} className="sm:size-[14px]" />
-                    <span className="text-xs sm:text-sm">Copiar</span>
+                <p className="text-center text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.06em] text-slate-400">Ou copie e cole esse código</p>
+                <div className="flex items-center justify-between gap-3 overflow-hidden rounded-[12px] bg-[#F8FAFC] p-3.5 border border-slate-100">
+                  <span className="truncate text-left text-xs font-mono text-slate-500 flex-1">
+                    00020101021226830014br.gov.bcb.pix2561pix.chave.ficticia-service.app5204000053039865405{order?.total_price || 0}5802BR5915ServiCE App6009Sao Paulo62070503***6304
+                  </span>
+                  <button 
+                    onClick={handleCopyPix}
+                    className="flex shrink-0 items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-white font-bold text-[#0D6E56] transition-all hover:bg-slate-50 active:scale-[0.97] border border-slate-200 text-xs shadow-sm"
+                  >
+                    <Copy size={12} />
+                    <span>Copiar</span>
                   </button>
                 </div>
               </div>
@@ -326,39 +409,97 @@ export default function Checkout() {
         {step === 'simulated-payment' && method === 'card' && (
           <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-200">
             <div className="rounded-[12px] sm:rounded-[16px] bg-white p-4 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
-              <h1 className="text-center text-[24px] sm:text-[28px] font-bold text-[#111827] mb-6 sm:mb-8">Dados do Cartao</h1>
+              <h1 className="text-center text-[24px] sm:text-[28px] font-bold text-[#111827] mb-6 sm:mb-8">Dados do Cartão</h1>
 
-              {/* Cartao Visual */}
-              <div className="relative flex h-[180px] sm:h-[220px] flex-col justify-between overflow-hidden rounded-[12px] sm:rounded-[16px] bg-gradient-to-br from-[#0D6E56] to-[#22A27E] p-4 sm:p-6 text-white shadow-xl mb-6 sm:mb-8">
-                <div className="flex items-start justify-between">
-                  <div className="h-8 sm:h-10 w-12 sm:w-14 rounded-[6px] sm:rounded-[8px] border-2 border-white/30 bg-yellow-300/20" />
-                  <div className="flex h-7 sm:h-8 w-12 sm:w-14 items-center justify-center rounded-md bg-white/20 text-[10px] sm:text-[11px] font-bold">VISA</div>
-                </div>
-                <div className="space-y-3 sm:space-y-4">
-                  <p className="font-mono text-[18px] sm:text-[22px] tracking-[0.2em] text-white/95">0000 0000 0000 0000</p>
-                  <div className="flex items-end justify-between text-[11px] sm:text-[13px]">
-                    <div>
-                      <p className="mb-1 text-[9px] sm:text-[10px] uppercase tracking-[0.08em] text-white/70 font-semibold">Titular</p>
-                      <p className="font-mono font-bold uppercase tracking-wider">Nome Cartao</p>
+              {/* Cartao Visual 3D Flip */}
+              <div className="w-full mb-8" style={{ perspective: '1000px' }}>
+                <div 
+                  className="relative w-full h-[180px] sm:h-[220px] transition-transform duration-500 shadow-xl rounded-2xl"
+                  style={{ 
+                    transformStyle: 'preserve-3d', 
+                    transform: isFlipped ? 'rotateY(180deg)' : 'none'
+                  }}
+                >
+                  {/* FRENTE DO CARTÃO */}
+                  <div 
+                    className="absolute inset-0 w-full h-full rounded-2xl bg-gradient-to-br from-[#0D6E56] to-[#22A27E] p-5 flex flex-col justify-between text-white"
+                    style={{ backfaceVisibility: 'hidden' }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="h-8 w-12 rounded bg-yellow-300/30 border border-white/20" />
+                      <div className="flex h-7 px-3 items-center justify-center rounded-md bg-white/20 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase">
+                        {cardBrand}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="mb-1 text-[9px] sm:text-[10px] uppercase tracking-[0.08em] text-white/70 font-semibold">Validade</p>
-                      <p className="font-mono font-bold">11/30</p>
+                    <div className="space-y-3 sm:space-y-4">
+                      <p className="font-mono text-[18px] sm:text-[22px] tracking-[0.2em] text-white/95">
+                        {cardNumber || '0000 0000 0000 0000'}
+                      </p>
+                      <div className="flex items-end justify-between text-[11px] sm:text-[13px]">
+                        <div>
+                          <p className="mb-1 text-[9px] uppercase tracking-[0.08em] text-white/70 font-semibold">Titular</p>
+                          <p className="font-mono font-bold uppercase tracking-wider truncate max-w-[170px]">
+                            {cardName || 'NOME COMPLETO'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="mb-1 text-[9px] uppercase tracking-[0.08em] text-white/70 font-semibold">Validade</p>
+                          <p className="font-mono font-bold">
+                            {cardExpiry || 'MM/AA'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* VERSO DO CARTÃO */}
+                  <div 
+                    className="absolute inset-0 w-full h-full rounded-2xl bg-gradient-to-br from-[#125845] to-[#0A3D30] flex flex-col justify-between text-white"
+                    style={{ 
+                      backfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)'
+                    }}
+                  >
+                    <div className="w-full h-10 bg-slate-900 mt-6" />
+                    <div className="px-6 mb-6">
+                      <div className="flex items-center justify-end gap-3">
+                        <span className="text-[10px] text-white/70 font-semibold">CVV</span>
+                        <div className="w-16 h-8 bg-white text-slate-800 font-mono font-bold flex items-center justify-center rounded text-sm">
+                          {cardCvv || '•••'}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full border border-white/10" />
               </div>
 
               {/* Campos de Entrada */}
               <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                 <div className="relative">
-                  <label className="absolute -top-2 left-3 bg-white px-1 text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">Numero do Cartao</label>
+                  <label className="absolute -top-2 left-3 bg-white px-1 text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">Número do Cartão</label>
                   <input
-                    disabled
+                    type="text"
                     inputMode="numeric"
+                    value={cardNumber}
+                    onChange={handleCardNumberChange}
+                    onFocus={() => setIsFlipped(false)}
                     placeholder="0000 0000 0000 0000"
-                    className="h-[44px] sm:h-[52px] w-full rounded-[8px] sm:rounded-[10px] border-2 border-[#d1d5db] bg-white px-3 sm:px-4 text-[14px] sm:text-[15px] transition-colors focus:border-[#0D6E56] focus:outline-none disabled:opacity-70 disabled:bg-[#F5F5F5]"
+                    maxLength="19"
+                    required
+                    className="h-[44px] sm:h-[52px] w-full rounded-[8px] sm:rounded-[10px] border-2 border-[#d1d5db] bg-white px-3 sm:px-4 text-[14px] sm:text-[15px] transition-colors focus:border-[#0D6E56] focus:outline-none"
+                  />
+                </div>
+
+                <div className="relative">
+                  <label className="absolute -top-2 left-3 bg-white px-1 text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">Nome do Titular (Como no cartão)</label>
+                  <input
+                    type="text"
+                    value={cardName}
+                    onChange={handleCardNameChange}
+                    onFocus={() => setIsFlipped(false)}
+                    placeholder="NOME IMPRESSO NO CARTÃO"
+                    required
+                    className="h-[44px] sm:h-[52px] w-full rounded-[8px] sm:rounded-[10px] border-2 border-[#d1d5db] bg-white px-3 sm:px-4 text-[14px] sm:text-[15px] transition-colors focus:border-[#0D6E56] focus:outline-none"
                   />
                 </div>
 
@@ -366,17 +507,28 @@ export default function Checkout() {
                   <div className="relative">
                     <label className="absolute -top-2 left-3 bg-white px-1 text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">Validade</label>
                     <input
-                      disabled
-                      placeholder="11/30"
-                      className="h-[44px] sm:h-[52px] w-full rounded-[8px] sm:rounded-[10px] border-2 border-[#d1d5db] bg-white px-3 sm:px-4 text-[14px] sm:text-[15px] transition-colors focus:border-[#0D6E56] focus:outline-none disabled:opacity-70 disabled:bg-[#F5F5F5]"
+                      type="text"
+                      placeholder="MM/AA"
+                      value={cardExpiry}
+                      onChange={handleCardExpiryChange}
+                      onFocus={() => setIsFlipped(false)}
+                      maxLength="5"
+                      required
+                      className="h-[44px] sm:h-[52px] w-full rounded-[8px] sm:rounded-[10px] border-2 border-[#d1d5db] bg-white px-3 sm:px-4 text-[14px] sm:text-[15px] transition-colors focus:border-[#0D6E56] focus:outline-none"
                     />
                   </div>
                   <div className="relative">
                     <label className="absolute -top-2 left-3 bg-white px-1 text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">CVV</label>
                     <input
-                      disabled
+                      type="text"
                       placeholder="123"
-                      className="h-[44px] sm:h-[52px] w-full rounded-[8px] sm:rounded-[10px] border-2 border-[#d1d5db] bg-white px-3 sm:px-4 text-[14px] sm:text-[15px] transition-colors focus:border-[#0D6E56] focus:outline-none disabled:opacity-70 disabled:bg-[#F5F5F5]"
+                      value={cardCvv}
+                      onChange={handleCardCvvChange}
+                      onFocus={() => setIsFlipped(true)}
+                      onBlur={() => setIsFlipped(false)}
+                      maxLength="4"
+                      required
+                      className="h-[44px] sm:h-[52px] w-full rounded-[8px] sm:rounded-[10px] border-2 border-[#d1d5db] bg-white px-3 sm:px-4 text-[14px] sm:text-[15px] transition-colors focus:border-[#0D6E56] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -385,7 +537,7 @@ export default function Checkout() {
               {/* Botao Pagar */}
               <button
                 onClick={handleSimulateSuccess}
-                disabled={processing}
+                disabled={processing || !cardNumber || !cardName || !cardExpiry || !cardCvv}
                 className="w-full h-[48px] sm:h-[56px] rounded-[12px] sm:rounded-[14px] bg-[#0D6E56] text-[15px] sm:text-[16px] font-semibold text-white shadow-lg shadow-emerald-900/10 transition-all hover:bg-[#0A4F3E] active:scale-[0.97] flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {processing ? <Loader2 className="animate-spin size-[18px] sm:size-[20px]" /> : <Lock size={18} className="sm:size-[20px]" />}
