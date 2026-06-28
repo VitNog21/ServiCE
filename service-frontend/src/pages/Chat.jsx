@@ -176,17 +176,70 @@ export default function Chat() {
     }
   }, [currentUser, loadConversations]);
 
+  const [activeOrder, setActiveOrder] = useState(null);
+
+  const fetchActiveOrder = useCallback(async (conversation) => {
+    if (!currentUser || !conversation) return;
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('listing_id', conversation.listing_id)
+        .or(`buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        setActiveOrder(data[0]);
+      } else {
+        setActiveOrder(null);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar pedido ativo:', err);
+    }
+  }, [currentUser]);
+
+  const handleConfirmReceipt = async (pedidoId) => {
+    if (!selectedConversation || !currentUser) return;
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'completed' })
+        .eq('id', pedidoId);
+
+      if (!error) {
+        setActiveOrder(prev => prev && prev.id === pedidoId ? { ...prev, status: 'completed' } : prev);
+        
+        // Envia mensagem automática informando a conclusão
+        await supabase.from('messages').insert([{
+          listing_id: selectedConversation.listing_id,
+          sender_id: currentUser.id,
+          receiver_id: selectedConversation.other_user_id,
+          content: '✔️ Confirmei o recebimento do produto/serviço! O pagamento foi liberado.',
+        }]);
+      } else {
+        throw error;
+      }
+    } catch (err) {
+      console.error('Erro ao confirmar recebimento:', err);
+      alert('Erro ao confirmar o recebimento.');
+    }
+  };
+
   useEffect(() => {
     if (selectedConversation) {
       let isMounted = true;
       const loadMsgAsync = async () => {
-        if (isMounted) await loadMessages(selectedConversation);
+        if (isMounted) {
+          await loadMessages(selectedConversation);
+          await fetchActiveOrder(selectedConversation);
+        }
       };
       loadMsgAsync();
       setMessageInput('');
       return () => { isMounted = false; };
     }
-  }, [selectedConversation, loadMessages]);
+  }, [selectedConversation, loadMessages, fetchActiveOrder]);
 
   useEffect(() => {
     if (messagesEndRef.current) messagesEndRef.current.scrollIntoView();
@@ -379,6 +432,51 @@ export default function Chat() {
                 </p>
               </div>
             </div>
+
+            {/* WIDGET DE STATUS DO PEDIDO (COMPRA GARANTIDA) */}
+            {activeOrder && (
+              <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between z-10 animate-in slide-in-from-top duration-200">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100">
+                    {activeOrder.status === 'pending' ? '⏳' : activeOrder.status === 'paid' ? '🔒' : activeOrder.status === 'completed' ? '✅' : '❌'}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Pedido #{activeOrder.id.slice(0, 8)}
+                    </p>
+                    <p className="text-xs sm:text-sm font-semibold text-slate-800">
+                      {activeOrder.status === 'pending' && 'Aguardando pagamento.'}
+                      {activeOrder.status === 'paid' && (
+                        activeOrder.buyer_id === currentUser.id 
+                          ? 'Pagamento seguro retido. Confirme se recebeu.' 
+                          : 'Pagamento seguro retido. Entregue o serviço/produto.'
+                      )}
+                      {activeOrder.status === 'completed' && 'Negócio concluído! Dinheiro liberado.'}
+                      {activeOrder.status === 'cancelled' && 'Pedido cancelado.'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="shrink-0">
+                  {activeOrder.status === 'pending' && activeOrder.buyer_id === currentUser.id && (
+                    <button 
+                      onClick={() => navigate(`/checkout/${activeOrder.id}`)}
+                      className="px-3 py-1.5 bg-[#00a884] hover:bg-[#008f6f] text-white text-xs font-bold rounded-lg active:scale-95 transition-all shadow-sm"
+                    >
+                      Pagar Agora
+                    </button>
+                  )}
+                  {activeOrder.status === 'paid' && activeOrder.buyer_id === currentUser.id && (
+                    <button 
+                      onClick={() => handleConfirmReceipt(activeOrder.id)}
+                      className="px-3 py-1.5 bg-[#0d6e56] hover:bg-[#0a4f3e] text-white text-xs font-bold rounded-lg active:scale-95 transition-all shadow-sm"
+                    >
+                      Confirmar Recebimento
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* ÁREA DE MENSAGENS */}
             <div className="flex-1 overflow-y-auto px-4 py-6 md:px-10 flex flex-col">
