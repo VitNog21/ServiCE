@@ -86,6 +86,10 @@ export default function MyOrders() {
 
   const activeOrders = tab === 'compras' ? compras : vendas;
 
+  // Cálculos de saldo para o vendedor
+  const completedEarnings = vendas.filter(v => v.status === 'completed' || v.status === 'concluido').reduce((acc, v) => acc + (Number(v.total_price) || 0), 0);
+  const pendingEarnings = vendas.filter(v => v.status === 'paid' || v.status === 'pago').reduce((acc, v) => acc + (Number(v.total_price) || 0), 0);
+
   return (
     <div className="my-listings-container">
       
@@ -147,7 +151,27 @@ export default function MyOrders() {
             <p>Quando houver uma transação, ela aparecerá aqui.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+          <>
+            {tab === 'vendas' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 p-4 rounded-xl bg-white border border-slate-100 shadow-sm animate-in fade-in duration-200">
+                <div className="flex flex-col p-4 rounded-xl bg-[#F0FAF6] border border-[#d1e8e4]">
+                  <span className="text-xs font-bold text-[#0D6E56] uppercase tracking-wider">Saldo Liberado</span>
+                  <span className="text-3xl font-extrabold text-slate-800 mt-1">
+                    R$ {completedEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                  <span className="text-xs text-[#0D6E56] mt-2 font-medium">Disponível para saque (Confirmação concluída)</span>
+                </div>
+                <div className="flex flex-col p-4 rounded-xl bg-blue-50 border border-blue-100">
+                  <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Saldo Retido</span>
+                  <span className="text-3xl font-extrabold text-slate-800 mt-1">
+                    R$ {pendingEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                  <span className="text-xs text-blue-500 mt-2 font-medium">Aguardando confirmação de recebimento do comprador</span>
+                </div>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
             {activeOrders.map((pedido) => (
               <div key={pedido.id} className="listing-card w-full">
                 
@@ -210,6 +234,7 @@ export default function MyOrders() {
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
 
