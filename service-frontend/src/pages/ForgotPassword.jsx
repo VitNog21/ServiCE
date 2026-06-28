@@ -190,6 +190,27 @@ const ForgotPassword = () => {
               <button type="submit" className="btn-primary" disabled={loading}>
                 {loading ? 'Redefinindo...' : 'Atualizar Senha'}
               </button>
+
+              <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                <button 
+                  type="button" 
+                  onClick={handleRequestCode} 
+                  disabled={loading}
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    color: 'var(--green-700)', 
+                    fontWeight: '600', 
+                    cursor: 'pointer', 
+                    fontSize: '14px',
+                    transition: 'opacity 0.2s'
+                  }}
+                  onMouseOver={(e) => e.target.style.opacity = '0.8'}
+                  onMouseOut={(e) => e.target.style.opacity = '1'}
+                >
+                  Não recebeu o código? Reenviar código
+                </button>
+              </div>
             </form>
           </>
         )}
