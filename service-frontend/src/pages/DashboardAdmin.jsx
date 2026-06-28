@@ -453,11 +453,15 @@ export default function DashboardAdmin() {
               {activeTab === 'overview' && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                   
-                  {/* 5 KPIS PRINCIPAIS */}
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mb-8">
+                  {/* 6 KPIS PRINCIPAIS */}
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 mb-8">
                     <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
                       <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Montante Vendido (GMV)</p>
                       <p className="text-2xl font-bold text-[var(--green-700)] mt-2">{formatCurrency(stats.totalGMV)}</p>
+                    </div>
+                    <div className="rounded-[var(--radius-md)] border border-blue-100 bg-blue-50 p-5 shadow-sm">
+                      <p className="text-xs font-semibold text-blue-700 uppercase">Comissão da Plataforma (10%)</p>
+                      <p className="text-2xl font-bold text-blue-900 mt-2">{formatCurrency(stats.totalGMV * 0.10)}</p>
                     </div>
                     <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
                       <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Serviços Concluídos</p>
