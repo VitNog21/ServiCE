@@ -88,7 +88,12 @@ const Login = () => {
           </div>
 
           <div className="input-group">
-            <label>Senha</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label>Senha</label>
+              <Link to="/esqueci-senha" style={{ fontSize: '12px', color: 'var(--green-700)', fontWeight: '600', textDecoration: 'none', marginBottom: '8px' }}>
+                Esqueceu a senha?
+              </Link>
+            </div>
             <input 
               type="password" 
               value={password} 

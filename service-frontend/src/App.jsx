@@ -16,6 +16,8 @@ import Failure from './pages/Failure';
 import Search from './pages/Search';
 import { ToastProvider } from './components/ui/toast';
 import MyOrders from './pages/MyOrders';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   return (
@@ -40,6 +42,8 @@ function App() {
           <Route path="/sucesso" element={<Success />} />
           <Route path="/falha" element={<Failure />} />
           <Route path="/meus-pedidos" element={<MyOrders />} />
+          <Route path="/esqueci-senha" element={<ForgotPassword />} />
+          <Route path="/recuperar-senha" element={<ResetPassword />} />
         </Routes>
       </Router>
     </ToastProvider>
