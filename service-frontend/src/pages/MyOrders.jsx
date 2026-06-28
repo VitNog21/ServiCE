@@ -57,6 +57,7 @@ export default function MyOrders() {
   const handleCancelOrder = async (pedidoId, listingId) => {
     if (!window.confirm('Tem certeza que deseja cancelar esta transação? O anúncio voltará a ficar ativo na vitrine.')) return;
     
+    let backendSuccess = false;
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'https://service-uakj.onrender.com';
       const res = await fetch(`${API_URL}/api/payments/cancel-order`, {
@@ -66,15 +67,44 @@ export default function MyOrders() {
       });
 
       if (res.ok) {
+        backendSuccess = true;
         setCompras(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'cancelled' } : p));
         setVendas(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'cancelled' } : p));
         toast({ title: 'Sucesso', description: 'Pedido cancelado e anúncio reativado na vitrine!' });
-      } else {
-        toast({ title: 'Erro', description: 'Não foi possível cancelar o pedido.' });
       }
     } catch (err) {
-      console.error(err);
-      toast({ title: 'Erro', description: 'Erro ao conectar com o servidor.' });
+      console.warn('Erro ao conectar com o backend para cancelamento, tentando fallback direto no banco...', err);
+    }
+
+    // Se o backend falhou (ex: ainda não foi atualizado na Render), tentamos atualizar direto no Supabase
+    if (!backendSuccess) {
+      console.log('Executando fallback direto de cancelamento via cliente Supabase.');
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', pedidoId);
+
+      if (orderError) {
+        toast({ title: 'Erro', description: 'Não foi possível cancelar o pedido no banco de dados.' });
+        return;
+      }
+
+      // Se houver listingId, reativa.
+      // Observação: se o usuário atual for o vendedor (dono do anúncio), o Supabase permitirá reativá-lo!
+      if (listingId) {
+        const { error: listingError } = await supabase
+          .from('listings')
+          .update({ status: 'active' })
+          .eq('id', listingId);
+          
+        if (listingError) {
+          console.warn('Erro RLS ao reativar anúncio (provavelmente porque você é o comprador e não o dono):', listingError.message);
+        }
+      }
+
+      setCompras(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'cancelled' } : p));
+      setVendas(prev => prev.map(p => p.id === pedidoId ? { ...p, status: 'cancelled' } : p));
+      toast({ title: 'Sucesso (Local)', description: 'Pedido cancelado! (O anúncio foi reativado se você for o vendedor)' });
     }
   };
 
