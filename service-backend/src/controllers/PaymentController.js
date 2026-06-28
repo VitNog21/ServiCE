@@ -20,7 +20,9 @@ export const PaymentController = {
 
       console.log('Creating preference for order:', order.id);
       const requestOrigin = req.get('origin') || req.get('referer');
-      const preference = await PaymentService.createPaymentPreference(order, requestOrigin);
+      const protocol = req.get('host').includes('localhost') ? 'http' : 'https';
+      const backendUrl = `${protocol}://${req.get('host')}`;
+      const preference = await PaymentService.createPaymentPreference(order, requestOrigin, backendUrl);
       console.log('Preference created successfully:', preference.id);
 
       return res.status(200).json({

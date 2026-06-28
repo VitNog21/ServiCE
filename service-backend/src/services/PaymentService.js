@@ -8,7 +8,7 @@ const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN || '' 
 });
 
-export const createPaymentPreference = async (order, requestOrigin = null) => {
+export const createPaymentPreference = async (order, requestOrigin = null, backendUrl = null) => {
   const preference = new Preference(client);
 
   let frontendUrl = (process.env.FRONTEND_URL && process.env.FRONTEND_URL !== 'INSIRA_O_VALOR_AQUI') 
@@ -28,9 +28,8 @@ export const createPaymentPreference = async (order, requestOrigin = null) => {
     ? process.env.WEBHOOK_URL.replace(/\/$/, '')
     : null;
 
-  // Automação DevOps: Se não houver WEBHOOK_URL manual, usamos o NGROK_DOMAIN estático
-  if (!webhookUrl && process.env.NGROK_DOMAIN && process.env.NGROK_DOMAIN !== 'INSIRA_O_VALOR_AQUI') {
-    webhookUrl = `https://${process.env.NGROK_DOMAIN.replace(/\/$/, '')}`;
+  if (!webhookUrl && backendUrl) {
+    webhookUrl = backendUrl.replace(/\/$/, '');
   }
 
   const isLocal = !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
