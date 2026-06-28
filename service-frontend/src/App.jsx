@@ -1,4 +1,6 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { supabase } from './supabase';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Cadastro from './pages/Cadastro';
@@ -19,10 +21,30 @@ import MyOrders from './pages/MyOrders';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 
+// Componente auxiliar para escutar eventos de autenticação do Supabase
+function AuthListener() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Quando o Supabase detecta que o usuário clicou no link de recuperação de senha do email
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('PASSWORD_RECOVERY event triggered, navigating to /recuperar-senha');
+        navigate('/recuperar-senha');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  return null;
+}
+
 function App() {
   return (
     <ToastProvider>
       <Router>
+        <AuthListener />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/busca" element={<Search />} />
