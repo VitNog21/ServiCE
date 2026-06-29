@@ -1,23 +1,53 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '../supabase';
 import '../css/login.css';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [step, setStep] = useState(1); // 1 = Digitar Email, 2 = Digitar Código OTP + Nova Senha
+  const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Fallback seguro caso a Vercel não tenha a variável de ambiente injetada
-  const API_URL = import.meta.env.VITE_API_URL || 'https://service-uakj.onrender.com';
+  // ETAPA 1: Solicitar Código de Recuperação
+  const handleRequestCode = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
 
-  const handleResetPasswordDirect = async (e) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/recuperar-senha`,
+      });
+
+      if (error) throw error;
+
+      setMessage({
+        type: 'success',
+        text: 'Código enviado! Verifique seu e-mail (caixa de entrada e spam).'
+      });
+      setStep(2); // Avança para a etapa de digitar o código e a nova senha
+    } catch (error) {
+      console.error('Erro ao solicitar recuperação:', error.message);
+      setMessage({
+        type: 'error',
+        text: 'Erro ao solicitar código. Verifique o e-mail digitado.'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ETAPA 2: Confirmar OTP e Redefinir Senha
+  const handleVerifyOtpAndReset = async (e) => {
     e.preventDefault();
 
     if (password.length < 6) {
-      setMessage({ type: 'error', text: 'A nova senha deve ter pelo menos 6 caracteres.' });
+      setMessage({ type: 'error', text: 'A senha deve ter pelo menos 6 caracteres.' });
       return;
     }
 
@@ -30,33 +60,39 @@ const ForgotPassword = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      // Chama o backend diretamente usando privilégios Admin do Supabase
-      const response = await fetch(`${API_URL}/api/auth/reset-password-direct`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      // 1. Validar o código OTP enviado ao e-mail
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'recovery'
       });
 
-      const data = await response.json();
+      if (otpError) throw otpError;
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao redefinir a senha.');
-      }
+      // 2. Com a sessão autenticada temporariamente, atualizar a senha
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (updateError) throw updateError;
 
       setMessage({
         type: 'success',
-        text: 'Senha redefinida com sucesso! Redirecionando para o login...'
+        text: 'Senha alterada com sucesso! Redirecionando para o login...'
       });
+
+      // Desloga o usuário da sessão temporária
+      await supabase.auth.signOut();
 
       setTimeout(() => {
         navigate('/login');
       }, 2500);
 
     } catch (error) {
-      console.error('Erro ao processar redefinição direta:', error.message);
+      console.error('Erro ao processar alteração com OTP:', error.message);
       setMessage({
         type: 'error',
-        text: error.message || 'Erro de conexão com o servidor.'
+        text: 'Código inválido ou expirado. Tente novamente ou solicite um novo código.'
       });
     } finally {
       setLoading(false);
@@ -80,53 +116,103 @@ const ForgotPassword = () => {
           <div className={`alert alert-${message.type}`}>{message.text}</div>
         )}
 
-        <p style={{ color: 'var(--gray-500)', fontSize: '14px', marginBottom: '24px', textAlign: 'center', lineHeight: '1.5' }}>
-          Digite o seu e-mail cadastrado e defina sua nova senha. A alteração será aplicada instantaneamente sem a necessidade de e-mail de confirmação.
-        </p>
+        {step === 1 ? (
+          <>
+            <p style={{ color: 'var(--gray-500)', fontSize: '14px', marginBottom: '24px', textAlign: 'center', lineHeight: '1.5' }}>
+              Digite o seu e-mail cadastrado. Enviaremos um código de 6 dígitos para você redefinir sua senha.
+            </p>
 
-        <form onSubmit={handleResetPasswordDirect}>
-          <div className="input-group">
-            <label>Email</label>
-            <input 
-              type="email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              required 
-              disabled={loading}
-              placeholder="seu@email.com"
-            />
-          </div>
+            <form onSubmit={handleRequestCode}>
+              <div className="input-group">
+                <label>Email</label>
+                <input 
+                  type="email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                  disabled={loading}
+                  placeholder="seu@email.com"
+                />
+              </div>
 
-          <div className="input-group">
-            <label>Nova Senha</label>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
-              disabled={loading}
-              placeholder="Mínimo 6 caracteres"
-              minLength="6"
-            />
-          </div>
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {loading ? 'Enviando...' : 'Enviar Código de Recuperação'}
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            <p style={{ color: 'var(--gray-500)', fontSize: '14px', marginBottom: '24px', textAlign: 'center', lineHeight: '1.5' }}>
+              Insira o código de recuperação enviado para <strong>{email}</strong> e escolha sua nova senha.
+            </p>
 
-          <div className="input-group">
-            <label>Confirmar Nova Senha</label>
-            <input 
-              type="password" 
-              value={confirmPassword} 
-              onChange={(e) => setConfirmPassword(e.target.value)} 
-              required 
-              disabled={loading}
-              placeholder="Digite a senha novamente"
-              minLength="6"
-            />
-          </div>
+            <form onSubmit={handleVerifyOtpAndReset}>
+              <div className="input-group">
+                <label>Código de Recuperação</label>
+                <input 
+                  type="text" 
+                  value={token} 
+                  onChange={(e) => setToken(e.target.value)} 
+                  required 
+                  disabled={loading}
+                  placeholder="Digite o código recebido"
+                  style={{ textAlign: 'center', fontSize: '18px' }}
+                />
+              </div>
 
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Redefinindo...' : 'Atualizar Senha'}
-          </button>
-        </form>
+              <div className="input-group">
+                <label>Nova Senha</label>
+                <input 
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  disabled={loading}
+                  placeholder="Mínimo 6 caracteres"
+                  minLength="6"
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Confirmar Nova Senha</label>
+                <input 
+                  type="password" 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  required 
+                  disabled={loading}
+                  placeholder="Digite a senha novamente"
+                  minLength="6"
+                />
+              </div>
+
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {loading ? 'Redefinindo...' : 'Atualizar Senha'}
+              </button>
+
+              <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                <button 
+                  type="button" 
+                  onClick={handleRequestCode} 
+                  disabled={loading}
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    color: 'var(--green-700)', 
+                    fontWeight: '600', 
+                    cursor: 'pointer', 
+                    fontSize: '14px',
+                    transition: 'opacity 0.2s'
+                  }}
+                  onMouseOver={(e) => e.target.style.opacity = '0.8'}
+                  onMouseOut={(e) => e.target.style.opacity = '1'}
+                >
+                  Não recebeu o código? Reenviar código
+                </button>
+              </div>
+            </form>
+          </>
+        )}
 
         <p className="register-link">
           Lembrou a senha? <Link to="/login">Entre aqui</Link>
