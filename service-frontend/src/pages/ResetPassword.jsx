@@ -73,7 +73,6 @@ const ResetPassword = () => {
   return (
     <div className="login-container">
       <div className="login-card">
-        {/* LOGO DO SITE */}
         <img 
           src="/assets/logo_service.png" 
           alt="ServiCE" 
