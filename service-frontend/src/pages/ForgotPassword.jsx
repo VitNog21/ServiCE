@@ -143,21 +143,20 @@ const ForgotPassword = () => {
         ) : (
           <>
             <p style={{ color: 'var(--gray-500)', fontSize: '14px', marginBottom: '24px', textAlign: 'center', lineHeight: '1.5' }}>
-              Insira o código de 6 dígitos enviado para <strong>{email}</strong> e escolha sua nova senha.
+              Insira o código de recuperação enviado para <strong>{email}</strong> e escolha sua nova senha.
             </p>
 
             <form onSubmit={handleVerifyOtpAndReset}>
               <div className="input-group">
-                <label>Código de 6 dígitos</label>
+                <label>Código de Recuperação</label>
                 <input 
                   type="text" 
                   value={token} 
                   onChange={(e) => setToken(e.target.value)} 
                   required 
                   disabled={loading}
-                  placeholder="000000"
-                  maxLength="6"
-                  style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '0.3em' }}
+                  placeholder="Digite o código recebido"
+                  style={{ textAlign: 'center', fontSize: '18px' }}
                 />
               </div>
 
