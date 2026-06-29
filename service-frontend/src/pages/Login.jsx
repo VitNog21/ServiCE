@@ -124,7 +124,7 @@ const Login = () => {
         </button>
 
         <p className="register-link">
-          Não tem conta? <Link to="/cadastro">Cadastre-se aqui</Link>
+          Ainda não tem conta? <Link to="/cadastro">Cadastre-se aqui</Link>
         </p>
       </div>
     </div>
