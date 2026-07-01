@@ -63,6 +63,14 @@ export default function DashboardAdmin() {
   const [searchUserTerm, setSearchUserTerm] = useState('');
   const [usersList, setUsersList] = useState([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  
+  // ==========================================
+  // ESTADOS PARA CRIAÇÃO DE CATEGORIA E FEEDBACK
+  // ==========================================
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, type: 'success', message: '' });
+
   const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isBanModalOpen, setIsBanModalOpen] = useState(false);
@@ -161,17 +169,10 @@ export default function DashboardAdmin() {
       };
 
       // 5. Montando os 8 Gráficos
-      
-      // Gráfico 1: Evolução de Usuários (Linha)
       const usersEvo = groupDataByMonth(safeUsers);
-      
-      // Gráfico 2: Volume de Vendas (Barras)
       const salesVol = groupDataByMonth(soldListings);
-      
-      // Gráfico 3: Receita Mensal - GMV (Área)
       const revenueEvo = groupDataByMonth(soldListings, (item) => Number(item.price) || 0);
 
-      // Gráfico 4: Categorias mais populares (Pizza)
       const catCounts = {};
       safeListings.forEach(l => {
         const catName = l.category?.name || 'Sem Categoria';
@@ -179,7 +180,6 @@ export default function DashboardAdmin() {
       });
       const listingsByCat = Object.entries(catCounts).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
 
-      // Gráfico 5: Preço Médio por Categoria (Barras Horizontais)
       const catPrices = {};
       safeListings.forEach(l => {
         const catName = l.category?.name || 'Sem Categoria';
@@ -192,7 +192,6 @@ export default function DashboardAdmin() {
         .sort((a,b) => b.media - a.media)
         .slice(0, 7);
 
-      // Gráfico 6: Status dos Anúncios (Donut)
       const statusCounts = { active: 0, paused: 0, sold: 0, inactive: 0 };
       safeListings.forEach(l => { if (statusCounts[l.status] !== undefined) statusCounts[l.status] += 1; });
       const listingsStatus = [
@@ -202,10 +201,7 @@ export default function DashboardAdmin() {
         { name: 'Banidos/Inativos', value: statusCounts.inactive, fill: STATUS_COLORS.inactive }
       ].filter(item => item.value > 0);
 
-      // Gráfico 7: Volume de Denúncias (Linha)
       const reportsEvo = groupDataByMonth(safeReports);
-
-      // Gráfico 8: Status das Denúncias (Pizza)
       const repStatusCount = { pending: 0, resolved: 0, dismissed: 0 };
       safeReports.forEach(r => { if(repStatusCount[r.status] !== undefined) repStatusCount[r.status] += 1; });
       const reportsStatus = [
@@ -242,7 +238,6 @@ export default function DashboardAdmin() {
     }
   };
 
-  // Funções de formatação
   const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   const handleSearchUsers = async (e) => {
@@ -253,6 +248,53 @@ export default function DashboardAdmin() {
       const { data } = await supabase.from('profiles').select('id, full_name, avatar_url, created_at, role').ilike('full_name', `%${searchUserTerm}%`).order('created_at', { ascending: false }).limit(20);
       setUsersList(data || []);
     } catch (err) {} finally { setIsSearchingUsers(false); }
+  };
+
+  // ==========================================
+  // FUNÇÃO: CRIAR CATEGORIA COM SLUG AUTOMÁTICO
+  // ==========================================
+  const handleCreateCategory = async (e) => {
+    e.preventDefault();
+    const trimmedName = newCategoryName.trim();
+    if (!trimmedName) return;
+    
+    setIsCreatingCategory(true);
+    try {
+      // Regra de Negócio: Criar o slug a partir do nome digitado
+      const slug = trimmedName
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .replace(/[^a-z0-9]+/g, '-')     // Substitui espaços e caracteres especiais por hífen
+        .replace(/(^-|-$)+/g, '');       // Remove hífens sobrando nas pontas
+
+      const { data, error } = await supabase
+        .from('categories')
+        .insert([{ name: trimmedName, slug: slug }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCategoriesDropdown(prev => [...prev, data]);
+      setNewCategoryName('');
+      
+      setFeedbackModal({
+        isOpen: true,
+        type: 'success',
+        message: `A categoria "${trimmedName}" foi criada com sucesso e já está disponível na plataforma!`
+      });
+
+    } catch (err) {
+      console.error('Erro ao criar categoria:', err);
+      setFeedbackModal({
+        isOpen: true,
+        type: 'error',
+        message: 'Erro ao criar a categoria. Verifique se o nome ou o identificador (slug) já existem no sistema.'
+      });
+    } finally {
+      setIsCreatingCategory(false);
+    }
   };
 
   const openUserDetails = async (user) => {
@@ -338,7 +380,6 @@ export default function DashboardAdmin() {
   return (
     <div className="flex h-screen bg-[var(--gray-50)] font-sans overflow-hidden">
       
-      {/* OVERLAY MOBILE PARA BARRA LATERAL */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
@@ -346,7 +387,6 @@ export default function DashboardAdmin() {
         />
       )}
 
-      {/* SIDEBAR LATERAL RESPONSIVA */}
       <aside className={`w-64 bg-[var(--gray-900)] text-slate-300 flex flex-col shadow-xl z-40 fixed md:sticky top-0 h-screen transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex items-center justify-between md:justify-center border-b border-slate-800">
           <div className="flex items-center">
@@ -374,7 +414,7 @@ export default function DashboardAdmin() {
             {stats.pendingReports > 0 && <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{stats.pendingReports}</span>}
           </button>
           <button onClick={() => { setActiveTab('users'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 rounded-[var(--radius-sm)] px-4 py-3 transition-colors text-left ${activeTab === 'users' ? 'bg-[var(--green-700)] text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
-            <Users size={20} /> <span className="font-medium">Buscar Usuários</span>
+            <Users size={20} /> <span className="font-medium">Usuários & Categorias</span>
           </button>
         </nav>
         <div className="p-4 border-t border-slate-800">
@@ -387,10 +427,8 @@ export default function DashboardAdmin() {
         </div>
       </aside>
 
-      {/* ÁREA DO CONTEÚDO PRINCIPAL COM SCROLL INDEPENDENTE */}
       <div className="flex-1 flex flex-col min-w-0 h-screen">
         
-        {/* HEADER MOBILE */}
         <div className="md:hidden flex items-center justify-between bg-white p-4 border-b border-[var(--gray-200)] shadow-sm z-20">
           <div className="flex items-center gap-2">
             <img src="/assets/logo_service.png" alt="ServiCE" className="h-6" />
@@ -401,21 +439,19 @@ export default function DashboardAdmin() {
           </button>
         </div>
 
-        {/* CONTEÚDO DA PÁGINA */}
         <main className="flex-1 p-4 md:p-8 overflow-y-auto">
           
-          {/* CABEÇALHO E FILTROS */}
           <header className="mb-6 md:mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-[var(--gray-900)]">
                 {activeTab === 'overview' && 'Inteligência de Negócio'}
                 {activeTab === 'moderation' && 'Central de Moderação'}
-                {activeTab === 'users' && 'Diretório de Usuários'}
+                {activeTab === 'users' && 'Diretório e Categorias'}
               </h1>
               <p className="text-[var(--gray-600)] mt-1 text-sm md:text-base">
                 {activeTab === 'overview' && 'Acompanhe as 8 principais métricas de saúde do marketplace.'}
                 {activeTab === 'moderation' && 'Analise denúncias, exclua anúncios falsos e bana infratores.'}
-                {activeTab === 'users' && 'Busque perfis e analise o histórico completo de cada anunciante.'}
+                {activeTab === 'users' && 'Busque perfis de anunciantes e gerencie as categorias do site.'}
               </p>
             </div>
 
@@ -447,13 +483,8 @@ export default function DashboardAdmin() {
             <div className="flex h-64 items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-4 border-[var(--green-700)] border-t-transparent"></div></div>
           ) : (
             <>
-              {/* =========================================================
-                  ABA: VISÃO GERAL (OS 8 GRÁFICOS)
-                  ========================================================= */}
               {activeTab === 'overview' && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  
-                  {/* 6 KPIS PRINCIPAIS */}
                   <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 mb-8">
                     <div className="rounded-[var(--radius-md)] border border-[var(--gray-200)] bg-white p-5 shadow-sm">
                       <p className="text-xs font-semibold text-[var(--gray-400)] uppercase">Montante Vendido (GMV)</p>
@@ -481,10 +512,7 @@ export default function DashboardAdmin() {
                     </div>
                   </div>
 
-                  {/* OS 8 GRÁFICOS */}
                   <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 mb-8">
-                    
-                    {/* Gráfico 1: Receita Mensal */}
                     <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
                       <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">1. Receita Gerada por Mês (GMV)</h3>
                       <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
@@ -499,7 +527,6 @@ export default function DashboardAdmin() {
                       </ResponsiveContainer></div>
                     </div>
 
-                    {/* Gráfico 2: Evolução de Vendas */}
                     <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
                       <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">2. Serviços Concluídos por Mês</h3>
                       <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
@@ -513,7 +540,6 @@ export default function DashboardAdmin() {
                       </ResponsiveContainer></div>
                     </div>
 
-                    {/* Gráfico 3: Crescimento de Usuários */}
                     <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
                       <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">3. Entrada de Novos Usuários</h3>
                       <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
@@ -527,7 +553,6 @@ export default function DashboardAdmin() {
                       </ResponsiveContainer></div>
                     </div>
 
-                    {/* Gráfico 4: Status dos Anúncios */}
                     <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
                       <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">4. Distribuição de Status dos Anúncios</h3>
                       <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
@@ -540,7 +565,6 @@ export default function DashboardAdmin() {
                       </ResponsiveContainer></div>
                     </div>
 
-                    {/* Gráfico 5: Top Categorias por Anúncio */}
                     <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
                       <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">5. Demanda por Categoria (Top 6)</h3>
                       <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
@@ -553,7 +577,6 @@ export default function DashboardAdmin() {
                       </ResponsiveContainer></div>
                     </div>
 
-                    {/* Gráfico 6: Ticket Médio por Categoria */}
                     <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
                       <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">6. Ticket Médio por Categoria</h3>
                       <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
@@ -567,7 +590,6 @@ export default function DashboardAdmin() {
                       </ResponsiveContainer></div>
                     </div>
 
-                    {/* Gráfico 7: Evolução de Denúncias */}
                     <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
                       <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">7. Ocorrências / Denúncias no Tempo</h3>
                       <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
@@ -581,7 +603,6 @@ export default function DashboardAdmin() {
                       </ResponsiveContainer></div>
                     </div>
 
-                    {/* Gráfico 8: Status das Denúncias */}
                     <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white p-4 md:p-6 shadow-sm w-full min-w-0">
                       <h3 className="text-sm font-bold text-[var(--gray-900)] mb-6 uppercase tracking-wide">8. Eficiência da Moderação (Status)</h3>
                       <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%">
@@ -598,7 +619,6 @@ export default function DashboardAdmin() {
                 </div>
               )}
 
-              {/* ABA MODERAÇÃO */}
               {activeTab === 'moderation' && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500 w-full">
                   <div className="rounded-[var(--radius-lg)] border border-[var(--gray-200)] bg-white shadow-sm overflow-hidden w-full">
@@ -637,19 +657,48 @@ export default function DashboardAdmin() {
                 </div>
               )}
 
-              {/* ABA USUÁRIOS */}
               {activeTab === 'users' && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500 w-full">
-                  <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--gray-200)] shadow-sm p-4 md:p-6 mb-6 w-full">
-                    <h2 className="text-lg font-bold text-[var(--gray-900)] mb-4">Pesquisar Anunciantes</h2>
-                    <form onSubmit={handleSearchUsers} className="flex flex-col sm:flex-row gap-3">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--gray-400)] h-5 w-5" />
-                        <Input type="text" placeholder="Nome do usuário..." className="pl-10 h-12 bg-[var(--gray-50)] border-[var(--gray-200)] rounded-[var(--radius-md)] w-full" value={searchUserTerm} onChange={(e) => setSearchUserTerm(e.target.value)} />
-                      </div>
-                      <Button type="submit" className="h-12 w-full sm:w-auto px-6 bg-[var(--green-700)] hover:bg-[var(--green-800)] rounded-[var(--radius-md)] text-white">{isSearchingUsers ? 'Buscando...' : 'Pesquisar'}</Button>
-                    </form>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    
+                    <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--gray-200)] shadow-sm p-4 md:p-6 w-full">
+                      <h2 className="text-lg font-bold text-[var(--gray-900)] mb-4">Pesquisar Anunciantes</h2>
+                      <form onSubmit={handleSearchUsers} className="flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--gray-400)] h-5 w-5" />
+                          <Input type="text" placeholder="Nome do usuário..." className="pl-10 h-12 bg-[var(--gray-50)] border-[var(--gray-200)] rounded-[var(--radius-md)] w-full" value={searchUserTerm} onChange={(e) => setSearchUserTerm(e.target.value)} />
+                        </div>
+                        <Button type="submit" className="h-12 w-full sm:w-auto px-6 bg-[var(--green-700)] hover:bg-[var(--green-800)] rounded-[var(--radius-md)] text-white">
+                          {isSearchingUsers ? 'Buscando...' : 'Pesquisar'}
+                        </Button>
+                      </form>
+                    </div>
+
+                    <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--gray-200)] shadow-sm p-4 md:p-6 w-full">
+                      <h2 className="text-lg font-bold text-[var(--gray-900)] mb-4">Criar Nova Categoria</h2>
+                      <form onSubmit={handleCreateCategory} className="flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
+                          <Input 
+                            type="text" 
+                            placeholder="Ex: Tecnologia, Reformas..." 
+                            className="h-12 bg-[var(--gray-50)] border-[var(--gray-200)] rounded-[var(--radius-md)] w-full px-4" 
+                            value={newCategoryName} 
+                            onChange={(e) => setNewCategoryName(e.target.value)} 
+                          />
+                        </div>
+                        <Button 
+                          type="submit" 
+                          disabled={isCreatingCategory || !newCategoryName.trim()} 
+                          className="h-12 w-full sm:w-auto px-6 bg-[var(--green-700)] hover:bg-[var(--green-800)] rounded-[var(--radius-md)] text-white"
+                        >
+                          {isCreatingCategory ? 'Criando...' : 'Adicionar'}
+                        </Button>
+                      </form>
+                    </div>
+
                   </div>
+
                   {usersList.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                       {usersList.map(u => (
@@ -670,7 +719,6 @@ export default function DashboardAdmin() {
         </main>
       </div>
 
-      {/* MODAIS COM POSICIONAMENTO CENTRALIZADO (FIXED) */}
       <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
         <DialogContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] max-w-md bg-white border-0 p-0 shadow-2xl rounded-[var(--radius-lg)] overflow-hidden">
           {selectedUserForDetails ? (
@@ -712,6 +760,32 @@ export default function DashboardAdmin() {
             <DialogClose asChild><Button variant="outline" className="w-full">Cancelar</Button></DialogClose>
             <Button className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={isCheckingBan || banModalData.acceptedReports < 3} onClick={handleConfirmBanUser}>Confirmar</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE FEEDBACK (CENTRALIZADO) */}
+      <Dialog open={feedbackModal.isOpen} onOpenChange={(open) => setFeedbackModal(prev => ({ ...prev, isOpen: open }))}>
+        <DialogContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90vw] max-w-sm bg-white border-0 p-6 shadow-2xl rounded-[var(--radius-lg)] text-center flex flex-col items-center">
+          {feedbackModal.type === 'success' ? (
+            <CheckCircle className="w-16 h-16 text-emerald-500 mb-4" />
+          ) : (
+            <XCircle className="w-16 h-16 text-red-500 mb-4" />
+          )}
+          
+          <DialogTitle className="text-xl font-bold text-[var(--gray-900)] mb-2">
+            {feedbackModal.type === 'success' ? 'Sucesso!' : 'Ops, algo deu errado'}
+          </DialogTitle>
+          
+          <p className="text-[var(--gray-600)] text-sm mb-6">
+            {feedbackModal.message}
+          </p>
+          
+          <Button 
+            onClick={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
+            className={`w-full h-12 text-white font-bold rounded-[var(--radius-md)] ${feedbackModal.type === 'success' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}
+          >
+            Entendi
+          </Button>
         </DialogContent>
       </Dialog>
     </div>
