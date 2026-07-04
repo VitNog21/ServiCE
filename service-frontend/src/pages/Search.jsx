@@ -264,6 +264,7 @@ const SearchListings = () => {
     return () => window.removeEventListener('mousedown', handlePointerDown);
   }, [showAdvancedFilters]);
 
+  // A variável filteredListings precisa ser criada AQUI antes do useEffect
   const filteredListings = useMemo(() => {
     const query = normalizeText(searchTerm.trim());
     const minPrice = Number(filters.minPrice);
@@ -312,6 +313,25 @@ const SearchListings = () => {
     }
     return sorted;
   }, [filters, listings, searchTerm, categories]);
+
+  // AGORA SIM! O useEffect das buscas vem DEPOIS do filteredListings ser inicializado.
+  useEffect(() => {
+    const query = searchTerm.trim();
+    if (!query) return;
+    if (filteredListings.length === 0) return;
+
+    const listingIds = filteredListings.map((listing) => listing.id).filter(Boolean);
+    if (listingIds.length === 0) return;
+
+    supabase.rpc('increment_search_count_bulk', { p_listing_ids: listingIds })
+  .then(({ data, error }) => {
+    if (error) {
+      console.error('🚨 ERRO DO SUPABASE NO SEARCH_COUNT:', error);
+    } else {
+      console.log('✅ SUCESSO! Buscas incrementadas para os IDs:', listingIds);
+    }
+  });
+  }, [filteredListings, searchTerm]);
 
   const renderListingCard = (listing) => {
     const imageUrl = Array.isArray(listing.image_urls) && listing.image_urls.length > 0 ? listing.image_urls[0] : listing.imagem_url || null;

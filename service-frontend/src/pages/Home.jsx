@@ -54,7 +54,9 @@ const Home = () => {
     categoryId: '', minPrice: '', maxPrice: '', maxDistanceMeters: '', sortBy: 'relevance',
   });
 
-  const [listings, setListings] = useState([]);
+  const [nearbyListings, setNearbyListings] = useState([]);
+  const [maisVisitados, setMaisVisitados] = useState([]);
+  const [maisBuscados, setMaisBuscados] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -253,28 +255,56 @@ const Home = () => {
   useEffect(() => {
     if (authLoading) return;
     let isMounted = true;
-    const fetchNearbyListings = async () => {
+    const fetchHomeSections = async () => {
       try {
         setLoading(true);
         setError('');
-        try {
-          const { lat, lon } = await getUserCoordinates();
-          const { data, error } = await supabase.rpc('buscar_anuncios_por_proximidade', { lat, lon });
-          if (error) throw error;
-          if (isMounted) setListings(Array.isArray(data) ? data : []);
-          return;
-        } catch (err) {}
 
-        const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, view_count, category:categories(id, name), address_text, created_at`).eq('status', 'active').order('created_at', { ascending: false }).limit(50);
-        if (error) throw error;
-        if (isMounted) setListings(Array.isArray(data) ? data : []);
+        const listingsSelect = 'id, title, description, price, image_urls, category_id, view_count, search_count, category:categories(id, name), address_text, created_at';
+
+        const [nearbyResult, visitedResult, searchedResult] = await Promise.allSettled([
+          (async () => {
+            try {
+              const { lat, lon } = await getUserCoordinates();
+              const { data, error } = await supabase.rpc('buscar_anuncios_por_proximidade', { lat, lon });
+              if (error) throw error;
+              return Array.isArray(data) ? data.slice(0, 5) : [];
+            } catch (err) {
+              const { data, error } = await supabase.from('listings').select(listingsSelect).eq('status', 'active').order('created_at', { ascending: false }).limit(50);
+              if (error) throw error;
+              return Array.isArray(data)
+                ? data.filter((listing) => {
+                  const dist = getListingDistanceMeters(listing);
+                  return dist !== null && dist <= 5000;
+                }).slice(0, 5)
+                : [];
+            }
+          })(),
+          supabase.from('listings').select(listingsSelect).eq('status', 'active').order('view_count', { ascending: false }).order('created_at', { ascending: false }).limit(5),
+          supabase.from('listings').select(listingsSelect).eq('status', 'active').order('search_count', { ascending: false }).order('created_at', { ascending: false }).limit(5),
+        ]);
+
+        if (!isMounted) return;
+
+        setNearbyListings(nearbyResult.status === 'fulfilled' ? (Array.isArray(nearbyResult.value) ? nearbyResult.value : []) : []);
+        setMaisVisitados(visitedResult.status === 'fulfilled' && Array.isArray(visitedResult.value.data) ? visitedResult.value.data : []);
+        setMaisBuscados(searchedResult.status === 'fulfilled' && Array.isArray(searchedResult.value.data) ? searchedResult.value.data : []);
+
+        if (nearbyResult.status === 'rejected' || visitedResult.status === 'rejected' || searchedResult.status === 'rejected') {
+          setError('Não foi possível carregar todas as vitrines.');
+        }
       } catch (err) {
-        if (isMounted) { setError('Não foi possível carregar os anúncios.'); setListings([]); }
+        if (isMounted) {
+          setError('Não foi possível carregar os anúncios.');
+          setNearbyListings([]);
+          setMaisVisitados([]);
+          setMaisBuscados([]);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
     };
-    fetchNearbyListings();
+    fetchHomeSections();
     return () => { isMounted = false; };
   }, [authLoading, user]);
 
@@ -312,30 +342,6 @@ const Home = () => {
 
   const toggleDropdown = (e) => { e.stopPropagation(); setShowDropdown((current) => !current); };
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setAvatarUrl(null); setUserRole(null); setShowDropdown(false); navigate('/'); };
-
-  // ==========================================
-  // SEÇÕES COM REGRAS ESTRITAS
-  // ==========================================
-  const nearbyListings = useMemo(() => {
-    return listings.filter(l => {
-      const dist = getListingDistanceMeters(l);
-      return dist !== null && dist <= 5000; 
-    }).slice(0, 5);
-  }, [listings]);
-
-  const visitedListings = useMemo(() => {
-    return [...listings].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
-  }, [listings]);
-
-  const searchedListings = useMemo(() => {
-    return [...listings]
-      .sort((a, b) => {
-        const viewCountDiff = Number(b.view_count ?? 0) - Number(a.view_count ?? 0);
-        if (viewCountDiff !== 0) return viewCountDiff;
-        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-      })
-      .slice(0, 5);
-  }, [listings]);
 
   // ==========================================
   // COMPONENTE DO CARD DE ANÚNCIO
@@ -611,7 +617,7 @@ const Home = () => {
           <h2 className="text-2xl font-bold text-[#002f34] mb-8">Anúncios Mais Visitados</h2>
           
           <div className="relative group flex items-center">
-            {visitedListings.length > 0 && (
+            {maisVisitados.length > 0 && (
               <button onClick={() => scrollContainer(visitedScrollRef, 'left')} className="absolute -left-5 z-20 w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-[#0A847C] opacity-0 group-hover:opacity-100 transition-all hidden md:flex">
                 <ChevronLeft className="h-6 w-6 pr-0.5" />
               </button>
@@ -620,9 +626,9 @@ const Home = () => {
             <div ref={visitedScrollRef} className="scroll-container w-full">
               {loading ? (
                 [1, 2, 3, 4, 5].map(i => <div key={i} className="listing-card-width h-64 bg-slate-200 animate-pulse rounded-xl" />)
-              ) : visitedListings.length > 0 ? (
+              ) : maisVisitados.length > 0 ? (
                 <>
-                  {visitedListings.map(renderListingCard)}
+                  {maisVisitados.map(renderListingCard)}
                   <div className="listing-card-width flex items-center justify-center snap-start">
                     <button onClick={() => navigate('/busca?section=visited')} className="flex flex-col items-center gap-3 text-[#0A847C] hover:text-[#085a51] group/btn">
                       <div className="w-16 h-16 rounded-full border-2 border-slate-200 flex items-center justify-center group-hover/btn:bg-slate-50 group-hover/btn:border-[#0A847C] transition-all"><ChevronRight size={28}/></div>
@@ -635,7 +641,7 @@ const Home = () => {
               )}
             </div>
 
-            {visitedListings.length > 0 && (
+            {maisVisitados.length > 0 && (
               <button onClick={() => scrollContainer(visitedScrollRef, 'right')} className="absolute -right-5 z-20 w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-[#0A847C] opacity-0 group-hover:opacity-100 transition-all hidden md:flex">
                 <ChevronRight className="h-6 w-6 pl-0.5" />
               </button>
@@ -648,7 +654,7 @@ const Home = () => {
           <h2 className="text-2xl font-bold text-[#002f34] mb-8">Serviços Mais Buscados</h2>
           
           <div className="relative group flex items-center">
-            {searchedListings.length > 0 && (
+            {maisBuscados.length > 0 && (
               <button onClick={() => scrollContainer(searchedScrollRef, 'left')} className="absolute -left-5 z-20 w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-[#0A847C] opacity-0 group-hover:opacity-100 transition-all hidden md:flex">
                 <ChevronLeft className="h-6 w-6 pr-0.5" />
               </button>
@@ -657,9 +663,9 @@ const Home = () => {
             <div ref={searchedScrollRef} className="scroll-container w-full">
               {loading ? (
                 [1, 2, 3, 4, 5].map(i => <div key={i} className="listing-card-width h-64 bg-slate-200 animate-pulse rounded-xl" />)
-              ) : searchedListings.length > 0 ? (
+              ) : maisBuscados.length > 0 ? (
                 <>
-                  {searchedListings.map(renderListingCard)}
+                  {maisBuscados.map(renderListingCard)}
                   <div className="listing-card-width flex items-center justify-center snap-start">
                     <button onClick={() => navigate('/busca?section=searched')} className="flex flex-col items-center gap-3 text-[#0A847C] hover:text-[#085a51] group/btn">
                       <div className="w-16 h-16 rounded-full border-2 border-slate-200 flex items-center justify-center group-hover/btn:bg-slate-50 group-hover/btn:border-[#0A847C] transition-all"><ChevronRight size={28}/></div>
@@ -672,7 +678,7 @@ const Home = () => {
               )}
             </div>
 
-            {searchedListings.length > 0 && (
+            {maisBuscados.length > 0 && (
               <button onClick={() => scrollContainer(searchedScrollRef, 'right')} className="absolute -right-5 z-20 w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-[#0A847C] opacity-0 group-hover:opacity-100 transition-all hidden md:flex">
                 <ChevronRight className="h-6 w-6 pl-0.5" />
               </button>

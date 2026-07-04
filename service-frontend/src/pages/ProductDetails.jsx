@@ -89,7 +89,15 @@ export default function ProductDetails() {
         } else if (data) {
           setProduto(data);
 
-          void supabase.rpc('increment_view_count', { p_listing_id: id });
+          // Dedo-duro do clique (View Count)
+          supabase.rpc('increment_view_count', { p_listing_id: id })
+            .then(({ error }) => {
+              if (error) {
+                console.error('🚨 ERRO DO SUPABASE NO VIEW_COUNT:', error);
+              } else {
+                console.log('✅ SUCESSO! Clique (view) contabilizado para o ID:', id);
+              }
+            });
           
           if (data.owner_id) {
             const { data: ownerData } = await supabase
