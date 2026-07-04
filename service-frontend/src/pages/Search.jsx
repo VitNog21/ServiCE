@@ -193,7 +193,7 @@ const SearchListings = () => {
       } else if (section === 'visited') {
         defaultSort = 'newest';
       } else if (section === 'searched') {
-        defaultSort = 'price-asc';
+        defaultSort = 'view-count';
       }
     }
 
@@ -241,7 +241,7 @@ const SearchListings = () => {
           if (error) throw error;
           if (isMounted) setListings(Array.isArray(data) ? data : []);
         } catch (err) {
-          const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, category:categories(id, name), address_text, created_at`).eq('status', 'active');
+          const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, view_count, category:categories(id, name), address_text, created_at`).eq('status', 'active');
           if (error) throw error;
           if (isMounted) setListings(Array.isArray(data) ? data : []);
         }
@@ -294,6 +294,13 @@ const SearchListings = () => {
     switch (filters.sortBy) {
       case 'distance':
         sorted.sort((a, b) => (getListingDistanceMeters(a) || Infinity) - (getListingDistanceMeters(b) || Infinity));
+        break;
+      case 'view-count':
+        sorted.sort((a, b) => {
+          const viewCountDiff = Number(b.view_count ?? 0) - Number(a.view_count ?? 0);
+          if (viewCountDiff !== 0) return viewCountDiff;
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
         break;
       case 'price-asc':
         sorted.sort((a, b) => getListingPrice(a) - getListingPrice(b)); break;

@@ -88,6 +88,8 @@ export default function ProductDetails() {
           setProduto(null);
         } else if (data) {
           setProduto(data);
+
+          void supabase.rpc('increment_view_count', { p_listing_id: id });
           
           if (data.owner_id) {
             const { data: ownerData } = await supabase

@@ -265,7 +265,7 @@ const Home = () => {
           return;
         } catch (err) {}
 
-        const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, category:categories(id, name), address_text, created_at`).eq('status', 'active').order('created_at', { ascending: false }).limit(50);
+        const { data, error } = await supabase.from('listings').select(`id, title, description, price, image_urls, category_id, view_count, category:categories(id, name), address_text, created_at`).eq('status', 'active').order('created_at', { ascending: false }).limit(50);
         if (error) throw error;
         if (isMounted) setListings(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -328,7 +328,13 @@ const Home = () => {
   }, [listings]);
 
   const searchedListings = useMemo(() => {
-    return [...listings].sort((a, b) => getListingPrice(a) - getListingPrice(b)).slice(0, 5);
+    return [...listings]
+      .sort((a, b) => {
+        const viewCountDiff = Number(b.view_count ?? 0) - Number(a.view_count ?? 0);
+        if (viewCountDiff !== 0) return viewCountDiff;
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      })
+      .slice(0, 5);
   }, [listings]);
 
   // ==========================================
