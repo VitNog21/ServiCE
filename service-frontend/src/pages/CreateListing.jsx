@@ -53,7 +53,7 @@ const CreateListing = () => {
 
         // C. Se falhar nas duas opções, aí sim expulsa para o login
         if (!currentUser) {
-          console.warn("Usuário não autenticado, redirecionando para login...");
+          console.warn("Usuário não autenticado, redirecionando para login");
           navigate('/login');
           return;
         }
